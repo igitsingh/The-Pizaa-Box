@@ -6,6 +6,9 @@ import { Search, Eye, Bike, Bell, FileText } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 
+export const dynamic = 'force-dynamic'
+
+
 import api from "@/lib/api"
 import { formatCurrency } from "@/lib/utils"
 import { Button } from "@/components/ui/button"

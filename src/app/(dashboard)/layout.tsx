@@ -5,6 +5,9 @@ import { Menu } from "lucide-react"
 import { Sidebar } from "@/components/layout/Sidebar"
 import { Button } from "@/components/ui/button"
 
+export const dynamic = 'force-dynamic'
+
+
 export default function DashboardLayout({
     children,
 }: {
