@@ -1,0 +1,107 @@
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+
+dotenv.config();
+
+import { initSocket, getIO } from './socket';
+
+const app = express();
+const httpServer = createServer(app);
+const io = initSocket(httpServer);
+
+import authRoutes from './routes/auth.routes';
+import menuRoutes from './routes/menu.routes';
+import orderRoutes from './routes/order.routes';
+import userRoutes from './routes/user.routes';
+import adminRoutes from './routes/admin.routes';
+import adminAuthRoutes from './routes/admin/auth.routes';
+import adminMenuRoutes from './routes/admin/menu.routes';
+import adminCategoryRoutes from './routes/admin/category.routes';
+import adminOrderRoutes from './routes/admin/order.routes';
+import adminCouponRoutes from './routes/admin/coupon.routes';
+import adminUserRoutes from './routes/admin/user.routes';
+import adminSettingsRoutes from './routes/admin/settings.routes';
+import locationRoutes from './routes/location.routes';
+import paymentRoutes from './routes/payment.routes';
+import settingsRoutes from './routes/settings.routes';
+import couponRoutes from './routes/coupon.routes';
+
+// Middleware
+app.use(express.json({
+    verify: (req, res, buf) => {
+        // @ts-ignore
+        if (req.originalUrl.startsWith('/api/payments/webhook')) {
+            // @ts-ignore
+            req.rawBody = buf.toString();
+        }
+    }
+}));
+app.use(cookieParser());
+app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+    credentials: true,
+}));
+app.use(helmet());
+app.use(morgan('dev'));
+
+import adminDeliveryPartnerRoutes from './routes/admin/delivery-partner.routes';
+import adminAnalyticsRoutes from './routes/admin/analytics.routes';
+import adminStockRoutes from './routes/admin/stock.routes';
+import adminPaymentRoutes from './routes/admin/payment.routes';
+import adminComplaintRoutes from './routes/admin/complaint.routes';
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/menu', menuRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/admin/auth', adminAuthRoutes);
+app.use('/api/admin/menu', adminMenuRoutes);
+app.use('/api/admin/categories', adminCategoryRoutes);
+app.use('/api/admin/orders', adminOrderRoutes);
+app.use('/api/admin/coupons', adminCouponRoutes);
+app.use('/api/admin/users', adminUserRoutes);
+app.use('/api/admin/settings', adminSettingsRoutes);
+app.use('/api/admin/delivery-partners', adminDeliveryPartnerRoutes);
+app.use('/api/admin/analytics', adminAnalyticsRoutes);
+app.use('/api/admin/stock', adminStockRoutes);
+app.use('/api/admin/payments', adminPaymentRoutes);
+app.use('/api/admin/complaints', adminComplaintRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/coupons', couponRoutes);
+
+// Basic Route
+app.get('/', (req, res) => {
+    res.json({ message: 'Welcome to The Pizza Box API' });
+});
+
+import { setupOrderSockets } from './sockets/order.socket';
+
+// Socket.io connection
+setupOrderSockets(io);
+
+io.on('connection', (socket) => {
+    console.log('A user connected:', socket.id);
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
+});
+
+const PORT = 5001; // Force port 5001 to avoid conflict with AirPlay on 5000
+
+httpServer.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`API Ready at http://localhost:${PORT}`);
+});
+
+

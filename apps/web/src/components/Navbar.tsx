@@ -1,0 +1,71 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { useStore } from '@/store/useStore';
+import { ShoppingCart, User, Menu } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import Logo from './Logo';
+import Sidebar from './Sidebar';
+
+const Navbar = () => {
+    const { cart, user } = useStore();
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    return (
+        <>
+            <nav className="border-b bg-white sticky top-0 z-50 shadow-sm">
+                <div className="container mx-auto px-4 h-16 flex items-center justify-between w-full">
+                    <div className="flex items-center gap-4">
+                        {/* Mobile Menu Removed as per request */}
+                        <Link href="/">
+                            <Logo className="scale-75 md:scale-100 origin-left" />
+                        </Link>
+                    </div>
+
+                    <div className="hidden md:flex items-center space-x-8">
+                        <Link href="/menu" className="text-gray-600 hover:text-primary font-medium">
+                            Menu
+                        </Link>
+                        <Link href="/orders" className="text-gray-600 hover:text-primary font-medium">
+                            Orders
+                        </Link>
+                        {user?.role === 'ADMIN' && (
+                            <Link href="http://localhost:3001" target="_blank">
+                                <Button variant="outline" className="border-orange-500 text-orange-600 hover:bg-orange-50">
+                                    Admin Panel
+                                </Button>
+                            </Link>
+                        )}
+                    </div>
+
+                    <div className="flex items-center space-x-4">
+                        <Link href="/cart">
+                            <Button variant="ghost" className="relative hover:bg-orange-50">
+                                <ShoppingCart className="h-5 w-5" />
+                                {cart.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+                                        {cart.length}
+                                    </span>
+                                )}
+                            </Button>
+                        </Link>
+
+                        <Button
+                            variant="ghost"
+                            className="hover:bg-orange-50"
+                            onClick={() => setIsSidebarOpen(true)}
+                        >
+                            <User className="h-5 w-5" />
+                            {user && <span className="ml-2 text-sm font-medium hidden md:inline-block">Hi, {user.name.split(' ')[0]}</span>}
+                        </Button>
+                    </div>
+                </div>
+            </nav>
+
+            <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+        </>
+    );
+};
+
+export default Navbar;

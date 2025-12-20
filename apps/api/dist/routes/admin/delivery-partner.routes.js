@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const delivery_partner_controller_1 = require("../../controllers/admin/delivery-partner.controller");
+const router = (0, express_1.Router)();
+router.get('/', delivery_partner_controller_1.getAllPartners);
+router.post('/', delivery_partner_controller_1.createPartner);
+router.put('/:id/status', delivery_partner_controller_1.updatePartnerStatus);
+router.delete('/:id', delivery_partner_controller_1.deletePartner);
+exports.default = router;
