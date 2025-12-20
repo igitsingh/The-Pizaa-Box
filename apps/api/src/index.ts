@@ -37,6 +37,7 @@ import enquiryRoutes from './routes/enquiry.routes';
 import adminEnquiryRoutes from './routes/admin/enquiry.routes';
 import referralRoutes from './routes/referral.routes';
 import membershipRoutes from './routes/membership.routes';
+import otpRoutes from './routes/otp.routes';
 
 // Middleware
 app.use(express.json({
@@ -92,6 +93,7 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/enquiry', enquiryRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/membership', membershipRoutes);
+app.use('/api/auth', otpRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {
