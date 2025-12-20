@@ -7,6 +7,8 @@ import JsonLd from "@/components/JsonLd";
 import { Toaster } from 'sonner';
 import SnowEffect from "@/components/SnowEffect";
 import HolidayBanner from "@/components/HolidayBanner";
+import CallbackButton from '@/components/CallbackButton';
+import WhatsAppButton from '@/components/WhatsAppButton';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -99,6 +101,8 @@ export default function RootLayout({
         <Navbar />
         <main className="min-h-screen bg-gray-50">{children}</main>
         <Footer />
+        <CallbackButton />
+        <WhatsAppButton />
         <Toaster />
       </body>
     </html>
