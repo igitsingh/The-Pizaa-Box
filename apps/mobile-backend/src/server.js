@@ -35,12 +35,14 @@ const authRoutes = require('./routes/auth.routes');
 const menuRoutes = require('./routes/menu.routes');
 const addressRoutes = require('./routes/address.routes');
 const cartRoutes = require('./routes/cart.routes');
+const orderRoutes = require('./routes/order.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/users/me/addresses', addressRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 app.get('/api', (req, res) => {
     res.json({
