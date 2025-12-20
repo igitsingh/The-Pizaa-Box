@@ -12,8 +12,10 @@ interface Snowflake {
 
 export default function SnowEffect() {
     const [snowflakes, setSnowflakes] = useState<Snowflake[]>([]);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         // Create 50 snowflakes
         const flakes: Snowflake[] = Array.from({ length: 50 }, (_, i) => ({
             id: i,
@@ -24,6 +26,8 @@ export default function SnowEffect() {
         }));
         setSnowflakes(flakes);
     }, []);
+
+    if (!mounted) return null;
 
     return (
         <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
