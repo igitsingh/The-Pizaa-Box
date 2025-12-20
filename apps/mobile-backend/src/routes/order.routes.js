@@ -9,15 +9,16 @@ const {
 } = require('../controllers/order.controller');
 const { protect } = require('../middlewares/auth');
 
-// All routes are protected
-router.use(protect);
-
+// POST / is open to guests as well, but protect it internally for logged in users
 router.route('/')
-    .post(createOrder)
-    .get(getMyOrders);
+    .post((req, res, next) => {
+        if (req.body.isGuest) return next();
+        return protect(req, res, next);
+    }, createOrder)
+    .get(protect, getMyOrders);
 
-router.get('/:id', getOrder);
-router.get('/:id/tracking', getOrderTracking);
-router.put('/:id/cancel', cancelOrder);
+router.get('/:id', protect, getOrder);
+router.get('/:id/tracking', getOrderTracking); // Tracking is public for guests if they have ID
+router.put('/:id/cancel', protect, cancelOrder);
 
 module.exports = router;

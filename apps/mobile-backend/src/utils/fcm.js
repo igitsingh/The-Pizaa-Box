@@ -7,22 +7,31 @@ const initializeFirebase = () => {
     if (firebaseInitialized) return;
 
     try {
-        // Initialize with service account (in production, use actual credentials)
-        if (process.env.FCM_PROJECT_ID) {
+        // Only initialize if we have actual credentials (not placeholders)
+        const projectId = process.env.FCM_PROJECT_ID;
+        const clientEmail = process.env.FCM_CLIENT_EMAIL;
+        const privateKey = process.env.FCM_PRIVATE_KEY;
+
+        const isConfigured = projectId &&
+            projectId !== 'your_firebase_project_id' &&
+            privateKey &&
+            privateKey.includes('BEGIN PRIVATE KEY');
+
+        if (isConfigured) {
             admin.initializeApp({
                 credential: admin.credential.cert({
-                    projectId: process.env.FCM_PROJECT_ID,
-                    clientEmail: process.env.FCM_CLIENT_EMAIL,
-                    privateKey: process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, '\n')
+                    projectId,
+                    clientEmail,
+                    privateKey: privateKey.replace(/\\n/g, '\n')
                 })
             });
             firebaseInitialized = true;
             console.log('✅ Firebase Admin initialized');
         } else {
-            console.log('⚠️  Firebase credentials not configured');
+            console.log('⚠️  Firebase credentials not configured or using placeholders. Push notifications will be disabled.');
         }
     } catch (error) {
-        console.error('❌ Firebase initialization error:', error.message);
+        console.error('❌ Firebase initialization warning:', error.message);
     }
 };
 

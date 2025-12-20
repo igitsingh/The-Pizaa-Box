@@ -32,17 +32,26 @@ const orderSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true,
+        required: function () { return this.orderType === 'user'; },
         index: true
+    },
+    orderType: {
+        type: String,
+        enum: ['user', 'guest'],
+        default: 'user'
+    },
+    guestPhone: {
+        type: String,
+        required: function () { return this.orderType === 'guest'; }
     },
     addressSnapshot: {
         label: String,
-        line1: String,
+        line1: { type: String, required: true },
         line2: String,
-        locality: String,
-        city: String,
-        state: String,
-        pincode: String
+        locality: { type: String, required: true },
+        city: { type: String, required: true },
+        state: { type: String, required: true },
+        pincode: { type: String, required: true }
     },
     items: [orderItemSchema],
     subtotal: {

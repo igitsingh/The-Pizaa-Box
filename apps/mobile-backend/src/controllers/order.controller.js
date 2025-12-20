@@ -9,43 +9,74 @@ const Address = require('../models/Address');
  */
 exports.createOrder = async (req, res, next) => {
     try {
-        const { addressId, paymentMethod } = req.body;
+        const { addressId, paymentMethod, isGuest, guestAddress, guestPhone, cartItems } = req.body;
 
-        if (!addressId || !paymentMethod) {
-            return res.status(400).json({
-                success: false,
-                error: 'Please provide addressId and paymentMethod'
+        let orderData = {
+            paymentProvider: paymentMethod,
+            paymentStatus: 'pending',
+            orderStatus: paymentMethod === 'cod' ? 'accepted' : 'created'
+        };
+
+        if (isGuest) {
+            if (!guestAddress || !guestPhone || !cartItems || cartItems.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Missing guest details: address, phone, or cart items'
+                });
+            }
+
+            orderData.orderType = 'guest';
+            orderData.guestPhone = guestPhone;
+            orderData.addressSnapshot = guestAddress;
+            orderData.items = cartItems;
+
+            // Calculate totals for guest order (since guest doesn't have a backend cart)
+            const subtotal = cartItems.reduce((sum, item) => sum + item.lineTotal, 0);
+            const deliveryFee = parseFloat(process.env.DELIVERY_FEE) || 40;
+            const taxRate = parseFloat(process.env.TAX_RATE) || 0.05;
+            const taxAmount = Math.round(subtotal * taxRate);
+
+            orderData.subtotal = subtotal;
+            orderData.discountAmount = 0; // Guest doesn't support coupons in initial version
+            orderData.deliveryFee = deliveryFee;
+            orderData.taxAmount = taxAmount;
+            orderData.grandTotal = subtotal + deliveryFee + taxAmount;
+
+        } else {
+            // Logged-in user logic
+            if (!addressId || !paymentMethod) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Please provide addressId and paymentMethod'
+                });
+            }
+
+            // Get user's cart
+            const cart = await Cart.findOne({ userId: req.user._id });
+            if (!cart || cart.items.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Cart is empty'
+                });
+            }
+
+            // Get address
+            const address = await Address.findOne({
+                _id: addressId,
+                userId: req.user._id
             });
-        }
+            if (!address) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Address not found'
+                });
+            }
 
-        // Get user's cart
-        const cart = await Cart.findOne({ userId: req.user._id });
-        if (!cart || cart.items.length === 0) {
-            return res.status(400).json({
-                success: false,
-                error: 'Cart is empty'
-            });
-        }
+            // Recalculate cart totals
+            await cart.calculateTotals();
 
-        // Get address
-        const address = await Address.findOne({
-            _id: addressId,
-            userId: req.user._id
-        });
-        if (!address) {
-            return res.status(404).json({
-                success: false,
-                error: 'Address not found'
-            });
-        }
-
-        // Recalculate cart totals (server-side validation)
-        await cart.calculateTotals();
-
-        // Create order
-        const order = await Order.create({
-            userId: req.user._id,
-            addressSnapshot: {
+            orderData.userId = req.user._id;
+            orderData.addressSnapshot = {
                 label: address.label,
                 line1: address.line1,
                 line2: address.line2,
@@ -53,33 +84,32 @@ exports.createOrder = async (req, res, next) => {
                 city: address.city,
                 state: address.state,
                 pincode: address.pincode
-            },
-            items: cart.items.map(item => ({
+            };
+            orderData.items = cart.items.map(item => ({
                 menuItemId: item.menuItemId,
                 nameSnapshot: item.nameSnapshot,
                 priceSnapshot: item.priceSnapshot,
                 quantity: item.quantity,
                 selectedOptions: item.selectedOptions,
                 lineTotal: item.lineTotal
-            })),
-            subtotal: cart.subtotal,
-            discountAmount: cart.discountAmount,
-            deliveryFee: cart.deliveryFee,
-            taxAmount: cart.taxAmount,
-            grandTotal: cart.grandTotal,
-            paymentProvider: paymentMethod,
-            paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending',
-            orderStatus: paymentMethod === 'cod' ? 'accepted' : 'created'
-        });
+            }));
+            orderData.subtotal = cart.subtotal;
+            orderData.discountAmount = cart.discountAmount;
+            orderData.deliveryFee = cart.deliveryFee;
+            orderData.taxAmount = cart.taxAmount;
+            orderData.grandTotal = cart.grandTotal;
 
-        // Clear cart after order creation
-        cart.items = [];
-        cart.couponCode = null;
-        cart.discountAmount = 0;
-        cart.subtotal = 0;
-        cart.taxAmount = 0;
-        cart.grandTotal = 0;
-        await cart.save();
+            // Clear cart after order creation
+            cart.items = [];
+            cart.couponCode = null;
+            cart.discountAmount = 0;
+            cart.subtotal = 0;
+            cart.taxAmount = 0;
+            cart.grandTotal = 0;
+            await cart.save();
+        }
+
+        const order = await Order.create(orderData);
 
         res.status(201).json({
             success: true,
