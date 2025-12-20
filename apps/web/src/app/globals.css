@@ -46,16 +46,16 @@
 :root {
   --radius: 0.625rem;
 
-  /* 🎄 FESTIVE CHRISTMAS THEME - Premium Red & Green */
+  /* 🎄 PREMIUM FESTIVE THEME - Clean & Professional */
   --festive-red: #DC2626;
-  --festive-red-dark: #991B1B;
+  --festive-red-dark: #B91C1C;
   --festive-green: #16A34A;
   --festive-green-dark: #15803D;
   --festive-gold: #F59E0B;
   --festive-cream: #FEF3C7;
 
-  --background: #FEF2F2;
-  /* Soft festive cream */
+  --background: #FFFFFF;
+  /* Clean white */
   --foreground: #1F2937;
   --card: #FFFFFF;
   --card-foreground: #1F2937;
@@ -67,7 +67,7 @@
   --secondary: var(--festive-green);
   /* Christmas Green */
   --secondary-foreground: #FFFFFF;
-  --muted: #F3F4F6;
+  --muted: #F9FAFB;
   --muted-foreground: #6B7280;
   --accent: var(--festive-gold);
   /* Festive Gold */
@@ -176,30 +176,53 @@
   }
 }
 
-/* 🎄 FESTIVE BACKGROUND GRADIENTS */
+/* 🎄 PREMIUM FESTIVE DESIGN - Clean & Classy */
 .festive-gradient-bg {
-  background: linear-gradient(135deg,
-      #FEF2F2 0%,
-      #FEE2E2 15%,
-      #DCFCE7 35%,
-      #FEF2F2 50%,
-      #FEE2E2 65%,
-      #DCFCE7 85%,
-      #FEF2F2 100%);
-  background-size: 400% 400%;
-  animation: festive-gradient 15s ease infinite;
+  background: #FFFFFF;
+  position: relative;
+}
+
+.festive-gradient-bg::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg,
+      #DC2626 0%,
+      #16A34A 25%,
+      #DC2626 50%,
+      #16A34A 75%,
+      #DC2626 100%);
+  background-size: 200% 100%;
+  animation: festive-border-slide 8s linear infinite;
 }
 
 .festive-red-gradient {
-  background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.3), 0 2px 4px -1px rgba(220, 38, 38, 0.2);
 }
 
 .festive-green-gradient {
   background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+  box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3), 0 2px 4px -1px rgba(22, 163, 74, 0.2);
 }
 
 .festive-gold-gradient {
   background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%);
+  box-shadow: 0 4px 6px -1px rgba(251, 191, 36, 0.3), 0 2px 4px -1px rgba(251, 191, 36, 0.2);
+}
+
+/* 🎄 Festive Border Slide Animation */
+@keyframes festive-border-slide {
+  0% {
+    background-position: 0% 0%;
+  }
+
+  100% {
+    background-position: 200% 0%;
+  }
 }
 
 /* 🎄 Festive Gradient Animation */
