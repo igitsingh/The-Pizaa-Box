@@ -21,8 +21,21 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             localStorage.removeItem('token');
-            // Only redirect if not already on login page to avoid loops if login check fails
-            if (!window.location.pathname.includes('/login')) {
+            // Clear user from Zustand store as well
+            if (typeof window !== 'undefined') {
+                const storage = localStorage.getItem('the-pizza-box-storage');
+                if (storage) {
+                    try {
+                        const parsed = JSON.parse(storage);
+                        parsed.state.user = null;
+                        localStorage.setItem('the-pizza-box-storage', JSON.stringify(parsed));
+                    } catch (e) {
+                        console.error('Error clearing user from store:', e);
+                    }
+                }
+            }
+            // Only redirect if not already on login page to avoid loops
+            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
                 window.location.href = '/login';
             }
         }

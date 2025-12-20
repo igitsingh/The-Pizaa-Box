@@ -21,11 +21,23 @@ export default function OrdersPage() {
 
     useEffect(() => {
         const fetchOrders = async () => {
+            // Check if user is logged in
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login';
+                return;
+            }
+
             try {
                 const res = await api.get('/orders');
                 setOrders(res.data);
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Failed to fetch orders', error);
+                // If 401, the interceptor will handle redirect
+                if (error.response?.status !== 401) {
+                    // Handle other errors
+                    console.error('Error fetching orders:', error);
+                }
             } finally {
                 setLoading(false);
             }
