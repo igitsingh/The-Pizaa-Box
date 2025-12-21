@@ -27,20 +27,23 @@ export default function AnalyticsPage() {
     const [salesTrend, setSalesTrend] = useState([])
     const [topItems, setTopItems] = useState([])
     const [orderStatusData, setOrderStatusData] = useState([])
+    const [stats, setStats] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [trendRes, topItemsRes, statusRes] = await Promise.all([
+                const [trendRes, topItemsRes, statusRes, statsRes] = await Promise.all([
                     api.get('/analytics/sales-trend?range=month'),
                     api.get('/analytics/top-items'),
-                    api.get('/analytics/orders-by-status')
+                    api.get('/analytics/orders-by-status'),
+                    api.get('/analytics/stats')
                 ]);
 
                 setSalesTrend(trendRes.data);
                 setTopItems(topItemsRes.data);
                 setOrderStatusData(statusRes.data);
+                setStats(statsRes.data);
             } catch (error) {
                 console.error("Failed to fetch analytics", error);
                 toast.error("Failed to load analytics data");
@@ -64,6 +67,47 @@ export default function AnalyticsPage() {
                     <p className="text-slate-500 mt-1">Deep dive into your restaurant's performance metrics.</p>
                 </div>
             </div>
+
+            {stats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="border-none shadow-sm bg-white">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider text-[10px]">Total Revenue</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{formatCurrency(stats.totalSalesToday)}</div>
+                            <p className="text-xs text-slate-400 mt-1">Generated today</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-none shadow-sm bg-white">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider text-[10px]">Total Orders</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.totalOrdersToday}</div>
+                            <p className="text-xs text-slate-400 mt-1">Placed today</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-none shadow-sm bg-white">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider text-[10px]">Repeat Rate</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-orange-600">{stats.repeatCustomerRate}%</div>
+                            <p className="text-xs text-slate-400 mt-1">Loyalty strength</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-none shadow-sm bg-white">
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-slate-500 uppercase tracking-wider text-[10px]">Active Customers</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+                            <p className="text-xs text-slate-400 mt-1">Total registered base</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
                 {/* Sales Trend Chart */}

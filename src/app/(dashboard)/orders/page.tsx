@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
-import { Search, Eye, Bike, Bell, FileText } from "lucide-react"
+import { Search, Eye, Bike, Bell, FileText, ExternalLink } from "lucide-react"
+import Link from "next/link"
 import { toast } from "sonner"
 import { format } from "date-fns"
 
@@ -423,6 +424,15 @@ export default function OrdersPage() {
                                                 >
                                                     <Eye className="h-4 w-4 text-slate-500" />
                                                 </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    asChild
+                                                >
+                                                    <Link href={`/orders/${order.id}`}>
+                                                        <ExternalLink className="h-4 w-4 text-orange-600" />
+                                                    </Link>
+                                                </Button>
                                             </div>
                                         </TableCell>
                                     </TableRow>
@@ -459,15 +469,28 @@ export default function OrdersPage() {
                                 </DialogDescription>
                             </div>
                             {selectedOrder && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex items-center gap-2 h-8 text-xs bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                                    onClick={() => handleDownloadInvoice(selectedOrder.id)}
-                                >
-                                    <FileText className="h-3 w-3" />
-                                    Download Invoice
-                                </Button>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-2 h-8 text-xs bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                                        onClick={() => handleDownloadInvoice(selectedOrder.id)}
+                                    >
+                                        <FileText className="h-3 w-3" />
+                                        Invoice
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex items-center gap-2 h-8 text-xs bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100"
+                                        asChild
+                                    >
+                                        <Link href={`/orders/${selectedOrder.id}`}>
+                                            <ExternalLink className="h-3 w-3" />
+                                            Full Page
+                                        </Link>
+                                    </Button>
+                                </div>
                             )}
                         </div>
                     </DialogHeader>

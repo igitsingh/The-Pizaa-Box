@@ -123,6 +123,30 @@ export default function LoginPage() {
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Sign In
                             </Button>
+
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-white px-2 text-muted-foreground">
+                                        Easy Access
+                                    </span>
+                                </div>
+                            </div>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full border-dashed border-primary/50 hover:bg-primary/5 hover:text-primary transition-colors"
+                                onClick={() => {
+                                    form.setValue("email", "admin@thepizzabox.com")
+                                    form.setValue("password", "adminpassword")
+                                    toast.info("Admin credentials autofilled!")
+                                }}
+                            >
+                                Autofill Admin Credentials
+                            </Button>
                         </form>
                     </Form>
                 </CardContent>

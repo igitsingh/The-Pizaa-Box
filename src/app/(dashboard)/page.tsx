@@ -15,7 +15,9 @@ export default function DashboardPage() {
         totalSalesToday: 0,
         totalOrdersToday: 0,
         activeOrders: 0,
-        lowStockItems: 0
+        lowStockItems: 0,
+        repeatCustomerRate: 0,
+        totalUsers: 0
     });
     const [salesTrend, setSalesTrend] = useState([]);
     const [topItems, setTopItems] = useState([]);
@@ -60,7 +62,7 @@ export default function DashboardPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-5">
                 <Link href="/payments" className="block">
                     <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
@@ -128,6 +130,23 @@ export default function DashboardPage() {
                             <div className="text-lg md:text-2xl font-bold text-slate-900">{stats.lowStockItems}</div>
                             <div className={`flex items-center text-[10px] md:text-xs mt-0.5 md:mt-1 ${stats.lowStockItems > 0 ? 'text-red-600' : 'text-green-600'}`}>
                                 Items need restocking
+                            </div>
+                        </CardContent>
+                    </Card>
+                </Link>
+
+                <Link href="/customers" className="block col-span-2 lg:col-span-1">
+                    <Card className="border-none shadow-sm bg-white hover:shadow-md transition-shadow cursor-pointer">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 md:pb-2">
+                            <CardTitle className="text-xs md:text-sm font-medium text-slate-500">Repeat Rate</CardTitle>
+                            <div className="h-6 w-6 md:h-8 md:w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                <TrendingUp className="h-3 w-3 md:h-4 md:w-4 text-purple-600" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pb-3 md:pb-4">
+                            <div className="text-lg md:text-2xl font-bold text-slate-900">{stats.repeatCustomerRate}%</div>
+                            <div className="flex items-center text-[10px] md:text-xs text-purple-600 mt-0.5 md:mt-1">
+                                Retained customers
                             </div>
                         </CardContent>
                     </Card>
@@ -213,7 +232,7 @@ export default function DashboardPage() {
                                     <div className="ml-3 md:ml-4 space-y-1">
                                         <p className="text-sm font-medium leading-none">{item.name}</p>
                                     </div>
-                                    <div className="ml-auto font-medium text-sm md:text-base">{item.count} sold</div>
+                                    <div className="ml-auto font-medium text-sm md:text-base">{item.soldCount} sold</div>
                                 </div>
                             ))}
                             {topItems.length === 0 && (

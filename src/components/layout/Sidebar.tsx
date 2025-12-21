@@ -18,7 +18,11 @@ import {
     MessageSquareWarning,
     MapPin,
     UserCircle,
-    Pizza
+    Pizza,
+    Trophy,
+    Package,
+    MessageSquare,
+    ChefHat
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import api from "@/lib/api"
@@ -30,6 +34,11 @@ const sidebarItems = [
         title: "Dashboard",
         href: "/",
         icon: LayoutDashboard,
+    },
+    {
+        title: "Kitchen Board",
+        href: "/kitchen",
+        icon: ChefHat,
     },
     {
         title: "Orders",
@@ -52,9 +61,24 @@ const sidebarItems = [
         icon: MapPin,
     },
     {
+        title: "Inventory",
+        href: "/stock",
+        icon: Package,
+    },
+    {
         title: "Coupons",
         href: "/coupons",
         icon: Ticket,
+    },
+    {
+        title: "Referrals",
+        href: "/referrals",
+        icon: Users,
+    },
+    {
+        title: "Memberships",
+        href: "/memberships",
+        icon: Trophy,
     },
     {
         title: "Delivery Partners",
@@ -80,6 +104,11 @@ const sidebarItems = [
         title: "Complaints",
         href: "/complaints",
         icon: MessageSquareWarning,
+    },
+    {
+        title: "Enquiries",
+        href: "/enquiries",
+        icon: MessageSquare,
     },
     {
         title: "Settings",

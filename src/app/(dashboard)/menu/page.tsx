@@ -69,6 +69,8 @@ type MenuItem = {
     isBestSeller: boolean
     isAvailable: boolean
     image?: string
+    stock: number
+    isStockManaged: boolean
 }
 
 const formSchema = z.object({
@@ -81,6 +83,8 @@ const formSchema = z.object({
     isBestSeller: z.boolean().default(false),
     isAvailable: z.boolean().default(true),
     image: z.string().optional(),
+    stock: z.string().optional().default("100"),
+    isStockManaged: z.boolean().default(false),
     slug: z.string().optional(),
     seoTitle: z.string().optional(),
     seoDescription: z.string().optional(),
@@ -113,6 +117,8 @@ export default function MenuPage() {
             isBestSeller: false,
             isAvailable: true,
             image: "",
+            stock: "100",
+            isStockManaged: false,
             slug: "",
             seoTitle: "",
             seoDescription: "",
@@ -142,6 +148,8 @@ export default function MenuPage() {
                 isBestSeller: editingItem.isBestSeller,
                 isAvailable: editingItem.isAvailable,
                 image: editingItem.image || "",
+                stock: editingItem.stock.toString(),
+                isStockManaged: editingItem.isStockManaged,
                 slug: (editingItem as any).slug || "",
                 seoTitle: (editingItem as any).seoTitle || "",
                 seoDescription: (editingItem as any).seoDescription || "",
@@ -164,6 +172,8 @@ export default function MenuPage() {
                 isBestSeller: false,
                 isAvailable: true,
                 image: "",
+                stock: "100",
+                isStockManaged: false,
                 slug: "",
                 seoTitle: "",
                 seoDescription: "",
@@ -679,6 +689,38 @@ export default function MenuPage() {
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="isStockManaged"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-white">
+                                            <FormControl>
+                                                <Checkbox
+                                                    checked={field.value}
+                                                    onCheckedChange={field.onChange}
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none">
+                                                <FormLabel>Manage Stock</FormLabel>
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+                                {form.watch("isStockManaged") && (
+                                    <FormField
+                                        control={form.control}
+                                        name="stock"
+                                        render={({ field }) => (
+                                            <FormItem className="col-span-2">
+                                                <FormLabel>Current Stock Level</FormLabel>
+                                                <FormControl>
+                                                    <Input type="number" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </div>
 
                             <DialogFooter>
