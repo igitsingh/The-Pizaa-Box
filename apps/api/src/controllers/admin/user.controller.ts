@@ -77,3 +77,28 @@ export const updateUser = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const getStaff = async (req: Request, res: Response) => {
+    try {
+        const staff = await prisma.user.findMany({
+            where: {
+                role: {
+                    in: ['ADMIN', 'MANAGER', 'CHEF', 'DELIVERY_PARTNER', 'ACCOUNTANT']
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        res.json(staff);
+    } catch (error) {
+        console.error('Get staff error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

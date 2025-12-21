@@ -41,11 +41,35 @@ export const getDashboardStats = async (req: Request, res: Response) => {
             }
         });
 
+        // 5. Repeat Customer Rate
+        const customersWithOrders = await prisma.user.findMany({
+            where: {
+                role: 'CUSTOMER',
+                orders: {
+                    some: {}
+                }
+            },
+            include: {
+                _count: {
+                    select: { orders: true }
+                }
+            }
+        });
+
+        const totalCustomers = customersWithOrders.length;
+        const repeatCustomers = customersWithOrders.filter(c => c._count.orders > 1).length;
+        const repeatCustomerRate = totalCustomers > 0 ? Math.round((repeatCustomers / totalCustomers) * 100) : 0;
+
+        // 6. Total Users (for context)
+        const totalUsers = await prisma.user.count({ where: { role: 'CUSTOMER' } });
+
         res.json({
             totalSalesToday,
             totalOrdersToday,
             activeOrders,
-            lowStockItems
+            lowStockItems,
+            repeatCustomerRate,
+            totalUsers
         });
     } catch (error) {
         console.error('Get dashboard stats error:', error);

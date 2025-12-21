@@ -4,7 +4,7 @@ import { getDashboardStats, getSalesTrend, getTopItems, getOrdersByStatus } from
 
 const router = Router();
 
-router.get('/stats', getDashboardStats);
+router.get('/stats', authenticate, authorizeAdmin, getDashboardStats);
 router.get('/sales-trend', authenticate, authorizeAdmin, getSalesTrend);
 router.get('/top-items', authenticate, authorizeAdmin, getTopItems);
 router.get('/orders-by-status', authenticate, authorizeAdmin, getOrdersByStatus);

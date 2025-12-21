@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export const createItem = async (req: Request, res: Response) => {
     try {
-        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller, variants } = req.body;
+        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller, stock, isStockManaged, variants } = req.body;
 
         const item = await (prisma as any).item.create({
             data: {
@@ -17,6 +17,8 @@ export const createItem = async (req: Request, res: Response) => {
                 isVeg: isVeg || false,
                 isSpicy: isSpicy || false,
                 isBestSeller: isBestSeller || false,
+                stock: stock ? parseInt(stock) : 100,
+                isStockManaged: isStockManaged || false,
                 variants: variants ? {
                     create: variants.map((v: any) => ({
                         type: v.type,
@@ -41,10 +43,9 @@ export const createItem = async (req: Request, res: Response) => {
 export const updateItem = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller, isAvailable, variants } = req.body;
+        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller, isAvailable, stock, isStockManaged, variants } = req.body;
 
         // Delete existing variants and recreate if variants are provided
-        // This is a simple implementation for the "dynamic add/remove" in UI
         if (variants) {
             await (prisma as any).variant.deleteMany({ where: { itemId: id } });
         }
@@ -61,6 +62,8 @@ export const updateItem = async (req: Request, res: Response) => {
                 isSpicy,
                 isBestSeller,
                 isAvailable,
+                stock: stock ? parseInt(stock) : undefined,
+                isStockManaged: isStockManaged,
                 variants: variants ? {
                     create: variants.map((v: any) => ({
                         type: v.type,

@@ -17,6 +17,7 @@ import ReviewsSection from '@/components/ReviewsSection';
 import HiddenSEOContent from '@/components/HiddenSEOContent';
 import ItemTags from '@/components/ItemTags';
 import api from '@/lib/api';
+import { FestiveHero } from '@/components/festive/FestiveHero';
 
 export default function Home() {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -149,10 +150,11 @@ export default function Home() {
       </div>
 
       <div className="w-full">
-        {/* Hero / Promo Section */}
-        <PromoBanner />
-
-        <HeroTextSlider />
+        {/* Hero / Promo Section - FESTIVE WRAPPED */}
+        <FestiveHero>
+          <PromoBanner />
+          <HeroTextSlider />
+        </FestiveHero>
 
         {/* Christmas/New Year Festive Section */}
         <section className="relative py-12 md:py-16 px-4 overflow-hidden bg-gradient-to-br from-red-700 via-green-700 to-red-800">

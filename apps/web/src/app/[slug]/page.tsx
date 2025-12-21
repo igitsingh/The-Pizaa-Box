@@ -181,11 +181,17 @@ export default async function SlugPage(props: any) {
                     </div>
                 </div>
                 <div className="container mx-auto px-4 py-8">
-                    <div className="mb-8">
-                        <h2 className="text-3xl font-bold text-slate-900 mb-2">{category.name} Menu</h2>
-                        <p className="text-slate-600 max-w-2xl">
-                            {category.seoDescription || `Explore our wide range of ${category.name}.`}
-                        </p>
+                    <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                        <div>
+                            <h2 className="text-3xl font-bold text-slate-900 mb-2">{category.name} Menu</h2>
+                            <p className="text-slate-600 max-w-2xl">
+                                {category.seoDescription || `Explore our wide range of ${category.name}.`}
+                            </p>
+                        </div>
+                        <div className="bg-orange-600 text-white px-6 py-3 rounded-xl shadow-lg animate-pulse">
+                            <p className="text-xs uppercase font-bold tracking-widest">Limited Offer</p>
+                            <p className="font-bold">Flat 20% OFF: NEWYEAR2025</p>
+                        </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {category.items.map((item) => (

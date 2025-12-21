@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ShoppingCart, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import ItemTags from '@/components/ItemTags';
+import { FestiveBadge } from '@/components/festive/FestiveBadge';
 
 interface Item {
     id: string;
@@ -39,10 +40,23 @@ export default function MenuCard({ item }: { item: Item }) {
         removeFromCart(item.id);
     };
 
+    // Logic for Festive Badges (Demo Logic)
+    let badgeType: 'christmas' | 'newyear' | 'family' | undefined;
+    if (item.isBestSeller) {
+        badgeType = 'newyear';
+    } else if (item.price > 800) {
+        badgeType = 'family';
+    } else if (item.price > 400) {
+        badgeType = 'christmas';
+    }
+
     return (
         <div className="bg-white rounded-lg shadow-sm border overflow-hidden hover:shadow-md transition-all group flex flex-col h-full relative">
             {/* Image Section - Clickable */}
             <Link href={`/menu/${item.id}`} className="relative h-48 bg-gray-100 overflow-hidden block">
+                {/* Festive Badge */}
+                {badgeType && <FestiveBadge type={badgeType} />}
+
                 {item.image ? (
                     <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 ) : (

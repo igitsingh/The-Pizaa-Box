@@ -38,6 +38,8 @@ import adminEnquiryRoutes from './routes/admin/enquiry.routes';
 import referralRoutes from './routes/referral.routes';
 import membershipRoutes from './routes/membership.routes';
 import otpRoutes from './routes/otp.routes';
+import adminReferralRoutes from './routes/admin/referral.routes';
+import adminMembershipRoutes from './routes/admin/membership.routes';
 
 // Middleware
 app.use(express.json({
@@ -63,6 +65,7 @@ import adminStockRoutes from './routes/admin/stock.routes';
 import adminPaymentRoutes from './routes/admin/payment.routes';
 import adminComplaintRoutes from './routes/admin/complaint.routes';
 import adminReportsRoutes from './routes/admin/reports.routes';
+import adminLocationRoutes from './routes/admin/location.routes';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -84,6 +87,9 @@ app.use('/api/admin/complaints', adminComplaintRoutes);
 app.use('/api/admin/feedbacks', adminFeedbackRoutes);
 app.use('/api/admin/enquiries', adminEnquiryRoutes);
 app.use('/api/admin/reports', adminReportsRoutes);
+app.use('/api/admin/referrals', adminReferralRoutes);
+app.use('/api/admin/memberships', adminMembershipRoutes);
+app.use('/api/admin/locations', adminLocationRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -93,7 +99,6 @@ app.use('/api/feedback', feedbackRoutes);
 app.use('/api/enquiry', enquiryRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/membership', membershipRoutes);
-app.use('/api/auth', otpRoutes);
 
 // Basic Route
 app.get('/', (req, res) => {

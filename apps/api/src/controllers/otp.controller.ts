@@ -9,6 +9,10 @@ const otpStore = new Map<string, { otp: string; expiresAt: number }>();
 
 // Generate 6-digit OTP
 const generateOTP = (): string => {
+    // In development, use a fixed OTP for convenience
+    if (process.env.NODE_ENV === 'development') {
+        return '123456';
+    }
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 

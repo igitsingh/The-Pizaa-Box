@@ -15,6 +15,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
                     },
                 },
                 items: true,
+                address: true,
             },
             orderBy: {
                 createdAt: 'desc',

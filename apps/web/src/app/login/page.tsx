@@ -234,6 +234,25 @@ export default function AuthPage() {
                             </div>
                         </form>
                     )}
+
+                    {/* Development Helper */}
+                    <div className="mt-6 pt-6 border-t border-dashed text-center">
+                        <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-2 font-bold">Development Helper</p>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-dashed border-orange-200 hover:bg-orange-50 hover:text-orange-600 transition-all text-xs"
+                            onClick={() => {
+                                setPhone('9999999999');
+                                setStep('otp');
+                                setOtp('123456');
+                                toast.info('Filled Test Account! (Magic OTP: 123456)');
+                            }}
+                        >
+                            ⚡ Autofill Test Account
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Benefits */}
@@ -258,7 +277,7 @@ export default function AuthPage() {
                         </li>
                     </ul>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

@@ -25,10 +25,22 @@ exports.createRazorpayOrder = async (req, res, next) => {
         }
 
         // Get order
-        const order = await Order.findOne({
-            _id: orderId,
-            userId: req.user._id
-        });
+        const order = await Order.findById(orderId);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                error: 'Order not found'
+            });
+        }
+
+        // Security check
+        if (order.orderType === 'user' && (!req.user || order.userId.toString() !== req.user._id.toString())) {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized access to this order'
+            });
+        }
 
         if (!order) {
             return res.status(404).json({
@@ -60,7 +72,7 @@ exports.createRazorpayOrder = async (req, res, next) => {
             receipt: order._id.toString(),
             notes: {
                 orderId: order._id.toString(),
-                userId: req.user._id.toString()
+                userId: order.userId ? order.userId.toString() : 'guest'
             }
         });
 
@@ -106,15 +118,20 @@ exports.verifyPayment = async (req, res, next) => {
         }
 
         // Get order
-        const order = await Order.findOne({
-            _id: orderId,
-            userId: req.user._id
-        });
+        const order = await Order.findById(orderId);
 
         if (!order) {
             return res.status(404).json({
                 success: false,
                 error: 'Order not found'
+            });
+        }
+
+        // Security check
+        if (order.orderType === 'user' && (!req.user || order.userId.toString() !== req.user._id.toString())) {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized access'
             });
         }
 
@@ -185,15 +202,20 @@ exports.handlePaymentFailure = async (req, res, next) => {
             });
         }
 
-        const order = await Order.findOne({
-            _id: orderId,
-            userId: req.user._id
-        });
+        const order = await Order.findById(orderId);
 
         if (!order) {
             return res.status(404).json({
                 success: false,
                 error: 'Order not found'
+            });
+        }
+
+        // Security check
+        if (order.orderType === 'user' && (!req.user || order.userId.toString() !== req.user._id.toString())) {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized access'
             });
         }
 
@@ -221,15 +243,21 @@ exports.handlePaymentFailure = async (req, res, next) => {
  */
 exports.getPaymentStatus = async (req, res, next) => {
     try {
-        const order = await Order.findOne({
-            _id: req.params.orderId,
-            userId: req.user._id
-        }).select('paymentStatus paymentProvider razorpayPaymentId grandTotal');
+        const order = await Order.findById(req.params.orderId)
+            .select('paymentStatus paymentProvider razorpayPaymentId grandTotal userId orderType');
 
         if (!order) {
             return res.status(404).json({
                 success: false,
                 error: 'Order not found'
+            });
+        }
+
+        // Security check
+        if (order.orderType === 'user' && (!req.user || order.userId.toString() !== req.user._id.toString())) {
+            return res.status(401).json({
+                success: false,
+                error: 'Unauthorized access'
             });
         }
 

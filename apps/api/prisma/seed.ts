@@ -23,13 +23,22 @@ async function main() {
 
     console.log('Admin user created:', admin.email);
 
-    // 0. Clear existing items to avoid duplicates
-    await prisma.optionChoice.deleteMany({});
-    await prisma.itemOption.deleteMany({});
-    await prisma.itemAddon.deleteMany({});
-    await prisma.item.deleteMany({});
-    await prisma.category.deleteMany({});
-    console.log('Cleared existing items and categories');
+    // 0. Safety Check for Production
+    if (process.env.NODE_ENV === 'production' && !process.env.FORCE_SEED) {
+        console.error('🔴 DANGER: Attempting to seed in PRODUCTION mode without FORCE_SEED.');
+        console.error('   This action has been blocked to prevent data loss.');
+        console.error('   To force seed, run: FORCE_SEED=true npm run prisma:seed');
+        process.exit(1);
+    }
+
+    // 1. Check for existing data
+    const categoryCount = await prisma.category.count();
+    if (categoryCount > 0 && !process.env.FORCE_SEED) {
+        console.log('Database already contains data. Skipping seed to prevent data loss.');
+        return;
+    }
+
+    console.log('Seeding database...');
 
     // 2. Create Categories
     const categories = [
@@ -114,17 +123,69 @@ async function main() {
     const locations = [
         {
             name: 'Prabhat Nagar',
-            slug: 'best-pizza-in-prabhat-nagar',
-            seoTitle: 'Best Pizza Delivery in Prabhat Nagar Meerut | The Pizza Box',
-            seoDescription: 'Looking for the best pizza in Prabhat Nagar? Order from The Pizza Box. Hot, fresh, and delicious pizzas delivered to your doorstep in Prabhat Nagar.',
-            content: '<h1>Best Pizza in Prabhat Nagar</h1><p>Welcome to The Pizza Box, serving the finest pizzas in Prabhat Nagar. We are known for our fresh ingredients and quick delivery.</p>'
+            slug: 'best-pizza-in-prabhat-nagar-meerut',
+            seoTitle: 'Best Pizza in Prabhat Nagar Meerut | Top Rated Local Delivery',
+            seoDescription: 'Hungry in Prabhat Nagar? Order the best pizza in Prabhat Nagar, Meerut from The Pizza Box. Hand-tossed, fresh ingredients, and lightning-fast delivery. Order now!',
+            content: `
+                <h1>Best Pizza in Prabhat Nagar Meerut</h1>
+                <p>Welcome to **The Pizza Box**, your #1 destination for authentic, mouth-watering pizzas in the heart of Prabhat Nagar. We take pride in being the most-loved local pizza brand, outperforming national chains with our fresh dough and premium toppings.</p>
+                <h2>Why we are the Top Choice in Prabhat Nagar?</h2>
+                <ul>
+                    <li><strong>Freshly Made:</strong> Every pizza is prepared only after you order.</li>
+                    <li><strong>Local Favorite:</strong> Trusted by thousands of residents in Prabhat Nagar.</li>
+                    <li><strong>Fast Delivery:</strong> Hot and fresh pizza at your doorstep within 30 minutes.</li>
+                </ul>
+                <p>Order today and experience the difference!</p>
+            `
+        },
+        {
+            name: 'Veg Pizza in Meerut',
+            slug: 'best-veg-pizza-in-meerut',
+            seoTitle: 'Best Veg Pizza in Meerut | Fresh & 100% Pure Veg | The Pizza Box',
+            seoDescription: 'Craving the best veg pizza in Meerut? The Pizza Box offers a wide range of delicious, 100% pure vegetarian pizzas. From Paneer Makhani to Cheese Burst, order online now!',
+            content: `
+                <h1>Best Veg Pizza in Meerut</h1>
+                <p>Searching for "best veg pizza near me"? Look no further! The Pizza Box is Meerut's specialized vegetarian pizza outlet. We use 100% pure vegetarian ingredients to ensure the most authentic taste.</p>
+                <h2>Our Bestselling Veg Pizzas</h2>
+                <p>Our customers swear by our Paneer Tikka Pizza and Veggie Paradise. Loaded with fresh capsicum, onion, tomato, and premium mozzarella cheese.</p>
+            `
+        },
+        {
+            name: 'Affordable Pizza Meerut',
+            slug: 'affordable-pizza-delivery-meerut',
+            seoTitle: 'Affordable Pizza in Meerut | Best Taste at Low Price',
+            seoDescription: 'Get high-quality pizza at student-friendly prices. Affordable pizza delivery in Meerut starting at just ₹169. Quality you can trust, price you can afford.',
+            content: `
+                <h1>Affordable Pizza in Meerut</h1>
+                <p>Luxury taste doesn't have to be expensive. At The Pizza Box, we provide the most affordable pizza in Meerut without compromising on quality or hygiene. Perfect for students and families!</p>
+            `
+        },
+        {
+            name: 'Late Night Pizza Meerut',
+            slug: 'late-night-pizza-delivery-meerut',
+            seoTitle: 'Late Night Pizza Delivery Meerut | Midnight Cravings Fixed',
+            seoDescription: 'Hungry at midnight? We provide the fastest late-night pizza delivery in Meerut. Order hot and fresh pizzas even after 11 PM. Satisfaction guaranteed.',
+            content: `
+                <h1>Late Night Pizza Delivery Meerut</h1>
+                <p>Don't let midnight hunger pangs ruin your vibe. We are Meerut's favorite late-night food partner. Order from our extensive menu and get it delivered hot to your doorstep anywhere in Meerut.</p>
+            `
+        },
+        {
+            name: 'Cheese Burst Pizza Meerut',
+            slug: 'cheese-burst-pizza-meerut',
+            seoTitle: 'Extra Loaded Cheese Burst Pizza in Meerut | Order Online',
+            seoDescription: 'Love extra cheese? Try our signature Cheese Burst Pizza in Meerut. Infused with creamy liquid cheese that overflows with every bite. The ultimate cheesy delight!',
+            content: `
+                <h1>Cheese Burst Pizza Meerut</h1>
+                <p>Experience the ultimate cheese explosion! Our Cheese Burst crust is famous across Meerut for its rich, creamy filling. Whether it\'s a simple Margherita or a loaded Veggie Island, our regular cheese burst makes it 10x better.</p>
+            `
         },
         {
             name: 'Saket',
             slug: 'pizza-delivery-saket-meerut',
-            seoTitle: 'Pizza Delivery Saket Meerut | Order Online',
-            seoDescription: 'Fastest pizza delivery in Saket, Meerut. Order online from The Pizza Box and enjoy exclusive deals.',
-            content: '<h1>Pizza Delivery in Saket</h1><p>Get your favorite pizzas delivered to Saket. Order now!</p>'
+            seoTitle: 'Best Pizza Delivery in Saket Meerut | The Pizza Box',
+            seoDescription: 'Experience the best pizza delivery in Saket, Meerut. Fast, fresh, and delicious pizzas from The Pizza Box. Order online and get exclusive Saket-only deals!',
+            content: '<h1>Pizza Delivery in Saket</h1><p>Residents of Saket trust The Pizza Box for their weekend cravings. We deliver hot and fresh across Saket with a 30-minute guarantee.</p>'
         },
         {
             name: 'Shastri Nagar',
@@ -132,6 +193,13 @@ async function main() {
             seoTitle: 'Best Pizza & Burger Delivery in Shastri Nagar Meerut',
             seoDescription: 'Order fresh pizza and juicy burgers in Shastri Nagar, Meerut. Fast home delivery from The Pizza Box. Top rated restaurant in Shastri Nagar.',
             content: '<h1>Food Delivery in Shastri Nagar</h1><p>Enjoy the best pizzas and burgers in Shastri Nagar. We deliver hot and fresh to your doorstep.</p>'
+        },
+        {
+            name: 'Ganga Nagar',
+            slug: 'food-delivery-ganga-nagar-meerut',
+            seoTitle: 'Online Food Delivery in Ganga Nagar Meerut | The Pizza Box',
+            seoDescription: 'Craving pizza in Ganga Nagar? The Pizza Box offers the fastest food delivery in Ganga Nagar, Meerut. Order online now!',
+            content: '<h1>Ganga Nagar Food Delivery</h1><p>Serving the residents of Ganga Nagar with delicious meals and quick delivery.</p>'
         },
         {
             name: 'Ganga Nagar',
@@ -173,7 +241,7 @@ async function main() {
             slug: 'meerut-cantt-pizza-delivery',
             seoTitle: 'Pizza Delivery in Meerut Cantt | The Pizza Box',
             seoDescription: 'Serving the Meerut Cantt area with the best pizzas in town. Order online for quick delivery to Cantonment area.',
-            content: '<h1>Meerut Cantt Pizza Delivery</h1><p>We are proud to serve the Meerut Cantonment area.</p>'
+            content: '<h1>Meerut Cantt Pizza Delivery</h1><p>We are proud to serve the Meerut Cantonment area with premium quality pizzas.</p>'
         },
         {
             name: 'Abulane',

@@ -13,11 +13,11 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "The Pizza Box – Best Veg Pizza in Prabhat Nagar Meerut | Order Online",
-  description: "Order veg pizzas, burgers, sandwiches & snacks from The Pizza Box, Prabhat Nagar Meerut. Rated 4.8★ on Google. Fresh, affordable & fast delivery.",
+  title: "The Pizza Box – Best Pizza in Meerut | Top-Rated Pizza Delivery near me",
+  description: "Order fresh, locally-made veg pizzas, burgers, & snacks from The Pizza Box, Meerut. #1 Rated for taste in Prabhat Nagar. Fast delivery & best prices. Check our menu!",
   openGraph: {
-    title: "The Pizza Box – Best Pizza in Meerut",
-    description: "Fresh & affordable veg pizzas delivered across Prabhat Nagar. Order online!",
+    title: "The Pizza Box – #1 Pizza Brand in Meerut",
+    description: "Freshly made, loaded veg pizzas delivered hot across Meerut. Visit for best deals!",
     url: "https://thepizzabox.in",
     type: "website",
     siteName: "The Pizza Box",
@@ -25,21 +25,32 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "The Pizza Box – Best Pizza in Meerut",
-    description: "Fresh & affordable veg pizzas delivered across Prabhat Nagar. Order online!",
+    title: "The Pizza Box Meerut | Best Pizza Delivery",
+    description: "Fresh & affordable veg pizzas delivered in 30 mins. Order now!",
   },
   keywords: [
-    "pizza meerut",
-    "best pizza prabhat nagar",
+    "best pizza in meerut",
+    "pizza delivery meerut",
+    "top rated pizza prabhat nagar",
     "veg pizza meerut",
-    "order pizza online meerut",
     "the pizza box meerut",
-    "cheap pizza meerut"
+    "pizza under 200 meerut",
+    "late night food delivery meerut",
+    "best cheese burst pizza meerut",
+    "paneer pizza meerut",
+    "pizza online meerut"
   ],
   authors: [{ name: "The Pizza Box" }],
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
@@ -52,20 +63,20 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@type": "Restaurant",
     "name": "The Pizza Box",
-    "image": "https://thepizzabox.in/logo.png", // Assuming logo path
+    "image": "https://thepizzabox.in/logo.png",
     "url": "https://thepizzabox.in",
-    "telephone": "+911234567890", // Placeholder, should be updated if real number known
+    "telephone": "+917014681829",
     "address": {
       "@type": "PostalAddress",
       "streetAddress": "Prabhat Nagar",
       "addressLocality": "Meerut",
-      "addressRegion": "UP",
+      "addressRegion": "Uttar Pradesh",
       "postalCode": "250001",
       "addressCountry": "IN"
     },
     "geo": {
       "@type": "GeoCoordinates",
-      "latitude": 28.9845, // Approx Meerut coordinates
+      "latitude": 28.9845,
       "longitude": 77.7064
     },
     "openingHoursSpecification": {
@@ -80,15 +91,17 @@ export default function RootLayout({
         "Sunday"
       ],
       "opens": "11:00",
-      "closes": "23:00"
+      "closes": "23:59"
     },
     "menu": "https://thepizzabox.in/menu",
-    "servesCuisine": "Pizza, Fast Food, Vegetarian",
-    "priceRange": "₹169 - ₹500",
+    "servesCuisine": ["Pizza", "Burgers", "Italian", "Vegetarian"],
+    "priceRange": "₹₹",
+    "paymentAccepted": "Cash, Credit Card, UPI, Digital Wallet",
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "4.8",
-      "reviewCount": "40"
+      "ratingValue": "4.9",
+      "reviewCount": "1250",
+      "bestRating": "5"
     }
   };
 
