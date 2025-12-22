@@ -29,7 +29,7 @@ export default function OrdersPage() {
             }
 
             try {
-                const res = await api.get('/orders');
+                const res = await api.get('/orders/my');
                 setOrders(res.data);
             } catch (error: any) {
                 console.error('Failed to fetch orders', error);

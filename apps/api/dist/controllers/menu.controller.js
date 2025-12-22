@@ -17,6 +17,7 @@ const getMenu = async (req, res) => {
                             },
                         },
                         addons: true,
+                        variants: true,
                     },
                 },
             },
@@ -40,6 +41,7 @@ const getItem = async (req, res) => {
                     },
                 },
                 addons: true,
+                variants: true,
             },
         });
         if (!item) {
@@ -67,6 +69,7 @@ const getCategoryBySlug = async (req, res) => {
                             },
                         },
                         addons: true,
+                        variants: true,
                     },
                 },
             },

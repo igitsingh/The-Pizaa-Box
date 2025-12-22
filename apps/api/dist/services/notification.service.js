@@ -1,28 +1,67 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.NotificationService = void 0;
+exports.notificationService = exports.NotificationService = void 0;
+const db_1 = __importDefault(require("../config/db"));
+const templates_1 = require("../lib/notifications/templates");
+const logger_provider_1 = require("../lib/notifications/providers/logger.provider");
+const sms_provider_1 = require("../lib/notifications/providers/sms.provider");
+const whatsapp_provider_1 = require("../lib/notifications/providers/whatsapp.provider");
 class NotificationService {
-    static async sendSMS(phone, message) {
-        // In a real app, integrate Twilio here
-        console.log(`[SMS] To: ${phone} | Message: ${message}`);
-    }
-    static async sendEmail(email, subject, body) {
-        // In a real app, integrate Resend/SendGrid here
-        console.log(`[EMAIL] To: ${email} | Subject: ${subject} | Body: ${body}`);
-    }
-    static async sendOrderConfirmation(order) {
-        const message = `Your order #${order.id.slice(0, 6)} has been placed successfully! Total: ₹${order.total}`;
-        if (order.user.phone) {
-            await this.sendSMS(order.user.phone, message);
+    constructor() {
+        this.providers = [];
+        // ALWAYS enable Logger
+        this.providers.push(new logger_provider_1.LoggerProvider());
+        // Conditionals for other providers
+        if (process.env.ENABLE_SMS === 'true') {
+            this.providers.push(new sms_provider_1.SMSProvider());
         }
-        await this.sendEmail(order.user.email, 'Order Confirmation', message);
-    }
-    static async sendStatusUpdate(order) {
-        const message = `Update: Your order #${order.id.slice(0, 6)} is now ${order.status.replace(/_/g, ' ')}.`;
-        if (order.user.phone) {
-            await this.sendSMS(order.user.phone, message);
+        if (process.env.ENABLE_WHATSAPP === 'true') {
+            this.providers.push(new whatsapp_provider_1.WhatsAppProvider());
         }
-        await this.sendEmail(order.user.email, 'Order Status Update', message);
+        // Email provider can be added similarly
+    }
+    async notify(event, payload) {
+        const message = templates_1.NotificationTemplates[event](payload);
+        // We run all providers in parallel, but we catch errors individually so one failure doesn't stop others
+        // And importantly, we DO NOT throw error back to the caller (Safe Mode)
+        const promises = this.providers.map(async (provider) => {
+            try {
+                const success = await provider.send(event, payload, message);
+                // Log to Database
+                if (payload.orderId) {
+                    await this.logToDB(payload.orderId, provider.name, event, success ? 'SENT' : 'SKIPPED', message);
+                }
+            }
+            catch (error) {
+                console.error(`[NotificationService] Failed to send via ${provider.name}`, error);
+                // Log failure to DB
+                if (payload.orderId) {
+                    await this.logToDB(payload.orderId, provider.name, event, 'FAILED', message, error.message);
+                }
+            }
+        });
+        await Promise.all(promises);
+    }
+    async logToDB(orderId, channel, event, status, message, error) {
+        try {
+            await db_1.default.notificationLog.create({
+                data: {
+                    orderId,
+                    channel,
+                    event,
+                    status,
+                    message,
+                    error
+                }
+            });
+        }
+        catch (dbError) {
+            console.error('[NotificationService] Failed to save log to DB', dbError);
+        }
     }
 }
 exports.NotificationService = NotificationService;
+exports.notificationService = new NotificationService();

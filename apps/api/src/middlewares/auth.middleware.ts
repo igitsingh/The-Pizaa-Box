@@ -1,6 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken } from '../utils/auth';
 
+export interface AuthRequest extends Request {
+    user?: any;
+}
+
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
     let token = req.headers.authorization?.split(' ')[1];
 

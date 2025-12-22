@@ -1,0 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const enquiry_controller_1 = require("../../controllers/admin/enquiry.controller");
+const router = (0, express_1.Router)();
+router.get('/stats', enquiry_controller_1.getEnquiryStats);
+router.get('/', enquiry_controller_1.getAllEnquiries);
+router.get('/:id', enquiry_controller_1.getEnquiry);
+router.patch('/:id/status', enquiry_controller_1.updateStatus);
+router.patch('/:id/assign', enquiry_controller_1.assignEnquiry);
+router.patch('/:id/notes', enquiry_controller_1.updateNotes);
+router.delete('/:id', enquiry_controller_1.deleteEnquiry);
+exports.default = router;

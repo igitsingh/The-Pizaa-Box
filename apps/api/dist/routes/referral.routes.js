@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middlewares/auth.middleware");
+const referral_controller_1 = require("../controllers/referral.controller");
+const router = (0, express_1.Router)();
+router.get('/my-code', auth_middleware_1.authenticate, referral_controller_1.getMyReferralCode);
+router.post('/apply', auth_middleware_1.authenticate, referral_controller_1.applyReferralCode);
+router.get('/my-referrals', auth_middleware_1.authenticate, referral_controller_1.getMyReferrals);
+exports.default = router;

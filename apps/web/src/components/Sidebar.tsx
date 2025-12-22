@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { X, User, FileText, Gift, Truck, MessageSquare, Info, Pizza } from 'lucide-react';
+import { X, User, FileText, Gift, Truck, MessageSquare, Info, Pizza, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/store/useStore';
 
@@ -47,24 +47,30 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             >
                 <div className="p-4 flex justify-between items-center border-b">
                     <div className="flex items-center gap-2">
-                        <div className="bg-gray-100 p-2 rounded-full">
-                            <User className="h-6 w-6 text-gray-600" />
-                        </div>
-                        <div>
-                            {user ? (
+                        {user ? (
+                            <Link href="/profile" onClick={onClose} className="flex items-center gap-3 group">
+                                <div className="bg-gray-100 p-2 rounded-full group-hover:bg-orange-50 transition-colors">
+                                    <User className="h-6 w-6 text-gray-600 group-hover:text-orange-600" />
+                                </div>
                                 <div>
-                                    <p className="font-bold text-sm">{user.name}</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5 leading-none">Profile</p>
+                                    <p className="font-bold text-sm group-hover:text-orange-600 transition-colors">{user.name}</p>
                                     <p className="text-xs text-gray-500">{user.email}</p>
                                 </div>
-                            ) : (
+                            </Link>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <div className="bg-gray-100 p-2 rounded-full">
+                                    <User className="h-6 w-6 text-gray-600" />
+                                </div>
                                 <div>
                                     <p className="font-bold text-sm">Welcome Guest</p>
                                     <Link href="/login" onClick={onClose}>
                                         <span className="text-xs text-primary font-bold hover:underline">Login / Signup</span>
                                     </Link>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                     <Button variant="ghost" size="icon" onClick={onClose}>
                         <X className="h-5 w-5" />
@@ -76,9 +82,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         <SidebarLink href="/menu" icon={Pizza} label="Our Menu" onClose={onClose} />
                         <SidebarLink href="/menu#deals" icon={Gift} label="Deals & Offers" onClose={onClose} />
                         <SidebarLink href="/orders" icon={Truck} label="Track Current Order" onClose={onClose} />
-                        <SidebarLink href="/profile" icon={FileText} label="Order History" onClose={onClose} />
+                        <SidebarLink href="/orders" icon={FileText} label="Order History" onClose={onClose} />
                         <div className="my-2 border-t" />
-                        <SidebarLink href="#" icon={MessageSquare} label="Feedback" onClose={onClose} />
+                        <SidebarLink href="/feedback" icon={MessageSquare} label="Feedback" onClose={onClose} />
+                        <SidebarLink href="/contact" icon={Briefcase} label="Business Enquiries" onClose={onClose} />
                         <SidebarLink href="#" icon={Info} label="Terms & Conditions" onClose={onClose} />
                     </nav>
                 </div>

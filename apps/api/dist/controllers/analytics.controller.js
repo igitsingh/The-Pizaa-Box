@@ -28,7 +28,36 @@ const getAnalytics = async (req, res) => {
             name: item.status,
             value: item._count.id,
         }));
-        // 4. Recent Orders (Last 5)
+        // 4. Repeat Customer Rate
+        const customersWithOrders = await db_1.default.user.findMany({
+            where: {
+                orders: {
+                    some: {}
+                }
+            },
+            include: {
+                _count: {
+                    select: { orders: true }
+                }
+            }
+        });
+        const totalCustomers = customersWithOrders.length;
+        const repeatCustomers = customersWithOrders.filter(c => c._count.orders > 1).length;
+        const repeatCustomerRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : 0;
+        // 5. Top Selling Items
+        const topItems = await db_1.default.orderItem.groupBy({
+            by: ['itemId', 'name'],
+            _sum: {
+                quantity: true
+            },
+            orderBy: {
+                _sum: {
+                    quantity: 'desc'
+                }
+            },
+            take: 5
+        });
+        // 6. Recent Orders (Last 5)
         const recentOrders = await db_1.default.order.findMany({
             take: 5,
             orderBy: {
@@ -36,7 +65,7 @@ const getAnalytics = async (req, res) => {
             },
             include: {
                 user: {
-                    select: { name: true, email: true },
+                    select: { name: true, phone: true },
                 },
             },
         });
@@ -44,6 +73,8 @@ const getAnalytics = async (req, res) => {
             totalRevenue,
             totalOrders,
             statusDistribution,
+            repeatCustomerRate,
+            topItems,
             recentOrders,
         });
     }

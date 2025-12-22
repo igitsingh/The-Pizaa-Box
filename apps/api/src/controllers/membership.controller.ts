@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { PrismaClient, MembershipTier } from '@prisma/client';
-import { AuthRequest } from '../../middlewares/auth.middleware';
+import { AuthRequest } from '../middlewares/auth.middleware';
 
 const prisma = new PrismaClient();
 
@@ -89,7 +89,7 @@ export const getMyMembership = async (req: AuthRequest, res: Response) => {
             benefits,
             nextTier,
             nextTierThreshold,
-            progressToNext: parseFloat(progressToNext),
+            progressToNext: parseFloat(String(progressToNext)),
             memberSince: user.createdAt
         });
     } catch (error) {

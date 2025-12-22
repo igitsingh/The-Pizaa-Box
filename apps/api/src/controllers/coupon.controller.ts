@@ -63,3 +63,33 @@ export const validateCoupon = async (req: Request, res: Response): Promise<void>
         }
     }
 };
+
+export const getFeaturedCoupon = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const coupons = await prisma.coupon.findMany({
+            where: {
+                isActive: true,
+                expiry: {
+                    gt: new Date(),
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+            take: 5, // Fetch a few to filter
+        });
+
+        // Find first valid one (checking limit)
+        const coupon = coupons.find(c => c.limit === null || c.usedCount < c.limit);
+
+        if (!coupon) {
+            res.json({ code: null });
+            return;
+        }
+
+        res.json(coupon);
+    } catch (error) {
+        console.error('Get featured coupon error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

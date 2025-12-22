@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMe = exports.whatsappLogin = exports.googleLogin = exports.login = exports.signup = void 0;
+exports.verifyOTP = exports.sendOTP = exports.getMe = exports.whatsappLogin = exports.googleLogin = exports.login = exports.signup = void 0;
 const db_1 = __importDefault(require("../config/db"));
 const auth_1 = require("../utils/auth");
 const zod_1 = require("zod");
@@ -14,8 +14,14 @@ const signupSchema = zod_1.z.object({
     phone: zod_1.z.string().optional(),
 });
 const loginSchema = zod_1.z.object({
-    identifier: zod_1.z.string(),
-    password: zod_1.z.string(),
+    identifier: zod_1.z.string().optional(),
+    password: zod_1.z.string().optional(),
+    phone: zod_1.z.string().optional(),
+});
+const otpSchema = zod_1.z.object({
+    phone: zod_1.z.string().min(10),
+    otp: zod_1.z.string().length(6).optional(),
+    name: zod_1.z.string().optional(),
 });
 const signup = async (req, res) => {
     try {
@@ -51,16 +57,26 @@ const login = async (req, res) => {
     try {
         const { identifier, password } = loginSchema.parse(req.body);
         // Check if identifier is email or phone
-        const isEmail = identifier.includes('@');
         let user;
-        if (isEmail) {
-            user = await db_1.default.user.findUnique({ where: { email: identifier } });
-        }
-        else {
-            // Assuming phone is unique. If not defined as unique in schema, findFirst
-            user = await db_1.default.user.findFirst({ where: { phone: identifier } });
+        if (identifier) {
+            const isEmail = identifier.includes('@');
+            if (isEmail) {
+                user = await db_1.default.user.findUnique({ where: { email: identifier } });
+            }
+            else {
+                // Assuming phone is unique. If not defined as unique in schema, findFirst
+                user = await db_1.default.user.findFirst({ where: { phone: identifier } });
+            }
         }
         if (!user) {
+            res.status(400).json({ message: 'Invalid credentials' });
+            return;
+        }
+        if (!password) {
+            res.status(400).json({ message: 'Password is required' });
+            return;
+        }
+        if (!user.password) {
             res.status(400).json({ message: 'Invalid credentials' });
             return;
         }
@@ -124,7 +140,7 @@ const whatsappLogin = async (req, res) => {
     try {
         const { phone, otp, name } = req.body;
         // Mock OTP verification
-        if (otp !== '1234') {
+        if (otp !== '123456') {
             res.status(400).json({ message: 'Invalid OTP' });
             return;
         }
@@ -172,3 +188,100 @@ const getMe = async (req, res) => {
     }
 };
 exports.getMe = getMe;
+const sendOTP = async (req, res) => {
+    try {
+        const { phone } = otpSchema.parse(req.body);
+        // Mock OTP generation
+        const otp = '123456';
+        const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+        // Find or create user to store OTP
+        let user = await db_1.default.user.findUnique({ where: { phone } });
+        if (!user) {
+            // If doesn't exist, we don't create it yet, we just note that this phone needs an OTP
+            // To keep it simple, let's create the user with a placeholder name.
+            user = await db_1.default.user.create({
+                data: {
+                    phone,
+                    name: 'Guest User',
+                    otp,
+                    otpExpiry
+                }
+            });
+        }
+        else {
+            await db_1.default.user.update({
+                where: { id: user.id },
+                data: { otp, otpExpiry }
+            });
+        }
+        console.log(`[OTP] Sent to ${phone}: ${otp}`);
+        res.json({ message: 'OTP sent successfully', otp }); // Returning OTP for development ease
+    }
+    catch (error) {
+        if (error instanceof zod_1.z.ZodError) {
+            res.status(400).json({ errors: error.issues });
+        }
+        else {
+            console.error('Send OTP error:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+};
+exports.sendOTP = sendOTP;
+const verifyOTP = async (req, res) => {
+    try {
+        const { phone, otp, name } = otpSchema.parse(req.body);
+        console.log(`[Auth] Verifying OTP for ${phone}: ${otp}`);
+        // Hardcoded bypass for development test account
+        if (phone === '9999999999' && otp === '123456') {
+            console.log('[Auth] Test account bypass triggered');
+            let user = await db_1.default.user.findUnique({ where: { phone } });
+            if (!user) {
+                console.log('[Auth] Creating new test user');
+                user = await db_1.default.user.create({
+                    data: {
+                        phone,
+                        name: name || 'Test User',
+                        email: `test-${Date.now()}@thepizzabox.in`,
+                        role: 'CUSTOMER'
+                    }
+                });
+            }
+            const token = (0, auth_1.generateToken)(user.id, user.role);
+            console.log('[Auth] Bypass successful, token generated');
+            res.json({ token, user, isNewUser: false });
+            return;
+        }
+        const user = await db_1.default.user.findUnique({ where: { phone } });
+        if (!user || user.otp !== otp) {
+            res.status(400).json({ message: 'Invalid or expired OTP' });
+            return;
+        }
+        // Check expiry if needed
+        if (user.otpExpiry && user.otpExpiry < new Date()) {
+            res.status(400).json({ message: 'OTP has expired' });
+            return;
+        }
+        // Update user: clear OTP and set name if provided
+        const updatedUser = await db_1.default.user.update({
+            where: { id: user.id },
+            data: {
+                otp: null,
+                otpExpiry: null,
+                name: name || user.name
+            }
+        });
+        const token = (0, auth_1.generateToken)(updatedUser.id, updatedUser.role);
+        res.json({ token, user: updatedUser });
+    }
+    catch (error) {
+        if (error instanceof zod_1.z.ZodError) {
+            res.status(400).json({ errors: error.issues });
+        }
+        else {
+            console.error('Verify OTP error:', error);
+            res.status(500).json({ message: 'Internal server error' });
+        }
+    }
+};
+exports.verifyOTP = verifyOTP;

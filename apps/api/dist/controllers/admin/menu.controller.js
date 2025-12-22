@@ -1,11 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllItems = exports.deleteItem = exports.updateItem = exports.createItem = void 0;
+exports.toggleVariantAvailability = exports.updateVariant = exports.createVariant = exports.getAllItems = exports.deleteItem = exports.updateItem = exports.createItem = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const createItem = async (req, res) => {
     try {
-        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller } = req.body;
+        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller, stock, isStockManaged, variants } = req.body;
         const item = await prisma.item.create({
             data: {
                 name,
@@ -16,7 +16,20 @@ const createItem = async (req, res) => {
                 isVeg: isVeg || false,
                 isSpicy: isSpicy || false,
                 isBestSeller: isBestSeller || false,
+                stock: stock ? parseInt(stock) : 100,
+                isStockManaged: isStockManaged || false,
+                variants: variants ? {
+                    create: variants.map((v) => ({
+                        type: v.type,
+                        label: v.label,
+                        price: parseFloat(v.price),
+                        isAvailable: v.isAvailable ?? true
+                    }))
+                } : undefined
             },
+            include: {
+                variants: true
+            }
         });
         res.status(201).json(item);
     }
@@ -29,8 +42,11 @@ exports.createItem = createItem;
 const updateItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller, isAvailable } = req.body;
-        console.log('Update item request:', { id, body: req.body });
+        const { name, description, price, image, categoryId, isVeg, isSpicy, isBestSeller, isAvailable, stock, isStockManaged, variants } = req.body;
+        // Delete existing variants and recreate if variants are provided
+        if (variants) {
+            await prisma.variant.deleteMany({ where: { itemId: id } });
+        }
         const item = await prisma.item.update({
             where: { id },
             data: {
@@ -43,9 +59,21 @@ const updateItem = async (req, res) => {
                 isSpicy,
                 isBestSeller,
                 isAvailable,
+                stock: stock ? parseInt(stock) : undefined,
+                isStockManaged: isStockManaged,
+                variants: variants ? {
+                    create: variants.map((v) => ({
+                        type: v.type,
+                        label: v.label,
+                        price: parseFloat(v.price),
+                        isAvailable: v.isAvailable ?? true
+                    }))
+                } : undefined
             },
+            include: {
+                variants: true
+            }
         });
-        console.log('Item updated:', item);
         res.json(item);
     }
     catch (error) {
@@ -73,6 +101,7 @@ const getAllItems = async (req, res) => {
         const items = await prisma.item.findMany({
             include: {
                 category: true,
+                variants: true
             },
             orderBy: {
                 createdAt: 'desc',
@@ -86,3 +115,47 @@ const getAllItems = async (req, res) => {
     }
 };
 exports.getAllItems = getAllItems;
+// Separate Variant CRUD
+const createVariant = async (req, res) => {
+    try {
+        const { itemId, type, label, price, isAvailable } = req.body;
+        const variant = await prisma.variant.create({
+            data: { itemId, type, label, price: parseFloat(price), isAvailable }
+        });
+        res.status(201).json(variant);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.createVariant = createVariant;
+const updateVariant = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { type, label, price, isAvailable } = req.body;
+        const variant = await prisma.variant.update({
+            where: { id },
+            data: { type, label, price: parseFloat(price), isAvailable }
+        });
+        res.json(variant);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.updateVariant = updateVariant;
+const toggleVariantAvailability = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isAvailable } = req.body;
+        const variant = await prisma.variant.update({
+            where: { id },
+            data: { isAvailable }
+        });
+        res.json(variant);
+    }
+    catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.toggleVariantAvailability = toggleVariantAvailability;

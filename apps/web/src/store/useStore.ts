@@ -8,6 +8,8 @@ interface CartItem {
     quantity: number;
     options?: any;
     addons?: any;
+    variants?: any;
+    type?: string;
 }
 
 interface User {

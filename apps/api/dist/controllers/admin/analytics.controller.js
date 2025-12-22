@@ -30,18 +30,38 @@ const getDashboardStats = async (req, res) => {
                 }
             }
         });
-        // 4. Low Stock Items
+        // 4. Low Stock Items (unavailable items)
         const lowStockItems = await prisma.item.count({
             where: {
-                isStockManaged: true,
-                stock: { lte: 10 }
+                isAvailable: false
             }
         });
+        // 5. Repeat Customer Rate
+        const customersWithOrders = await prisma.user.findMany({
+            where: {
+                role: 'CUSTOMER',
+                orders: {
+                    some: {}
+                }
+            },
+            include: {
+                _count: {
+                    select: { orders: true }
+                }
+            }
+        });
+        const totalCustomers = customersWithOrders.length;
+        const repeatCustomers = customersWithOrders.filter(c => c._count.orders > 1).length;
+        const repeatCustomerRate = totalCustomers > 0 ? Math.round((repeatCustomers / totalCustomers) * 100) : 0;
+        // 6. Total Users (for context)
+        const totalUsers = await prisma.user.count({ where: { role: 'CUSTOMER' } });
         res.json({
             totalSalesToday,
             totalOrdersToday,
             activeOrders,
-            lowStockItems
+            lowStockItems,
+            repeatCustomerRate,
+            totalUsers
         });
     }
     catch (error) {
@@ -52,11 +72,32 @@ const getDashboardStats = async (req, res) => {
 exports.getDashboardStats = getDashboardStats;
 const getSalesTrend = async (req, res) => {
     try {
-        const { range } = req.query; // 'week', 'month'
+        const { range } = req.query; // '7d', '15d', '1m', '3m', '6m', '1y', 'all'
         const today = new Date();
-        let startDate = (0, date_fns_1.subDays)(today, 7);
-        if (range === 'month') {
-            startDate = (0, date_fns_1.subDays)(today, 30);
+        let startDate;
+        switch (range) {
+            case '15d':
+                startDate = (0, date_fns_1.subDays)(today, 15);
+                break;
+            case '1m':
+                startDate = (0, date_fns_1.subDays)(today, 30);
+                break;
+            case '3m':
+                startDate = (0, date_fns_1.subDays)(today, 90);
+                break;
+            case '6m':
+                startDate = (0, date_fns_1.subDays)(today, 180);
+                break;
+            case '1y':
+                startDate = (0, date_fns_1.subDays)(today, 365);
+                break;
+            case 'all':
+                startDate = new Date(0); // Beginning of time
+                break;
+            case '7d':
+            default:
+                startDate = (0, date_fns_1.subDays)(today, 7);
+                break;
         }
         const orders = await prisma.order.findMany({
             where: {
@@ -88,25 +129,44 @@ const getSalesTrend = async (req, res) => {
 exports.getSalesTrend = getSalesTrend;
 const getTopItems = async (req, res) => {
     try {
-        // This is a simplified version. For large datasets, use raw SQL or aggregation pipeline.
+        // Get all non-cancelled orders with items
         const orders = await prisma.order.findMany({
             where: { status: { not: 'CANCELLED' } },
             include: { items: true },
-            take: 100 // Limit to last 100 orders for performance in this demo
+            take: 200 // Last 200 orders for better data
         });
         const itemCounts = {};
+        // Count quantities sold per item
         orders.forEach(order => {
             order.items.forEach(item => {
                 if (!itemCounts[item.itemId]) {
-                    itemCounts[item.itemId] = { name: item.name, count: 0 };
+                    itemCounts[item.itemId] = 0;
                 }
-                itemCounts[item.itemId].count += item.quantity;
+                itemCounts[item.itemId] += item.quantity;
             });
         });
-        const sortedItems = Object.values(itemCounts)
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 5);
-        res.json(sortedItems);
+        // Get top 10 item IDs
+        const topItemIds = Object.entries(itemCounts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 10)
+            .map(([itemId]) => itemId);
+        // Fetch full item details
+        const items = await prisma.item.findMany({
+            where: {
+                id: { in: topItemIds }
+            },
+            include: {
+                category: true
+            }
+        });
+        // Map items with their counts and sort by count
+        const topItems = items
+            .map(item => ({
+            ...item,
+            soldCount: itemCounts[item.id]
+        }))
+            .sort((a, b) => b.soldCount - a.soldCount);
+        res.json(topItems);
     }
     catch (error) {
         console.error('Get top items error:', error);

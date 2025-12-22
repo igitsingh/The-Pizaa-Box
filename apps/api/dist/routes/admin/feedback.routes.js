@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const feedback_controller_1 = require("../../controllers/admin/feedback.controller");
+const router = (0, express_1.Router)();
+router.get('/', feedback_controller_1.getAllFeedbacks);
+router.patch('/:id/respond', feedback_controller_1.respondToFeedback);
+router.patch('/:id/toggle-visibility', feedback_controller_1.toggleVisibility);
+router.delete('/:id', feedback_controller_1.deleteFeedback);
+exports.default = router;

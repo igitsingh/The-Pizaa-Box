@@ -6,7 +6,7 @@ import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Tag, X } from 'lucide-react';
 import { toast } from 'sonner';
 import PaymentMethodSelector from '@/components/PaymentMethodSelector';
 import UPIPayment from '@/components/UPIPayment';
@@ -27,6 +27,11 @@ export default function CheckoutPage() {
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [loading, setLoading] = useState(true);
     const [creatingOrder, setCreatingOrder] = useState(false);
+
+    // Coupon State
+    const [couponInput, setCouponInput] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+    const [validatingCoupon, setValidatingCoupon] = useState(false);
 
     // Payment State
     const [paymentMethod, setPaymentMethod] = useState('COD');
@@ -58,7 +63,44 @@ export default function CheckoutPage() {
     }, [user]);
 
     const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const finalTotal = Math.round(total * 1.05);
+
+    // Calculate final total with discount
+    // Logic: (Subtotal - Discount) + 5% Tax on (Subtotal - Discount)
+    const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
+    const taxableAmount = Math.max(0, total - discountAmount);
+    const tax = Math.round(taxableAmount * 0.05); // 5% tax
+    const finalTotal = taxableAmount + tax;
+
+    const handleApplyCoupon = async () => {
+        if (!couponInput.trim()) return;
+
+        setValidatingCoupon(true);
+        try {
+            const res = await api.post('/coupons/validate', {
+                code: couponInput,
+                cartTotal: total
+            });
+
+            setAppliedCoupon({
+                ...res.data,
+                code: couponInput // Ensure code is preserved
+            });
+            toast.success(`Coupon '${couponInput}' applied! You saved ₹${res.data.discount}`);
+        } catch (error: any) {
+            console.error('Coupon validation error:', error);
+            const msg = error.response?.data?.message || 'Invalid coupon code';
+            toast.error(msg);
+            setAppliedCoupon(null);
+        } finally {
+            setValidatingCoupon(false);
+        }
+    };
+
+    const removeCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponInput('');
+        toast.info('Coupon removed');
+    };
 
     const handlePaymentMethodChange = (method: string) => {
         setPaymentMethod(method);
@@ -92,18 +134,21 @@ export default function CheckoutPage() {
         try {
             const orderRes = await api.post('/orders', {
                 items: cart.map(item => ({
-                    id: item.id,
+                    itemId: item.id,
                     name: item.name,
                     price: item.price,
                     quantity: item.quantity,
                     options: item.options,
                     addons: item.addons,
+                    variants: item.type === 'variational' ? item.variants : undefined,
                 })),
                 total: finalTotal,
                 addressId: selectedAddressId,
                 paymentMethod,
                 paymentStatus: 'PAID', // Auto-mark as paid for demo
                 paymentDetails,
+                couponCode: appliedCoupon ? appliedCoupon.code : undefined,
+                discountAmount: appliedCoupon ? appliedCoupon.discount : 0
             });
 
             clearCart();
@@ -171,16 +216,69 @@ export default function CheckoutPage() {
                     )}
                 </div>
 
-                {/* Payment Section */}
+                {/* Payment & Coupon Section */}
                 <div>
-                    <h2 className="text-xl font-bold mb-4">Payment</h2>
+                    <h2 className="text-xl font-bold mb-4">Payment Details</h2>
+
+                    {/* Coupon Input */}
+                    <div className="bg-white border rounded-xl p-4 mb-6 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                            <Tag className="w-4 h-4" />
+                            Apply Coupon
+                        </div>
+                        {appliedCoupon ? (
+                            <div className="flex items-center justify-between bg-green-50 text-green-700 px-3 py-2 rounded-lg border border-green-200">
+                                <div className="flex flex-col">
+                                    <span className="font-bold flex items-center gap-2">
+                                        {appliedCoupon.code}
+                                        <span className="text-xs bg-green-200 px-1.5 py-0.5 rounded text-green-800">APPLIED</span>
+                                    </span>
+                                    <span className="text-xs">You saved ₹{appliedCoupon.discount}</span>
+                                </div>
+                                <button onClick={removeCoupon} className="p-1 hover:bg-green-100 rounded-full transition-colors">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Enter Code (e.g. NY2026)"
+                                    className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 uppercase"
+                                    value={couponInput}
+                                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                                />
+                                <Button
+                                    onClick={handleApplyCoupon}
+                                    disabled={validatingCoupon || !couponInput.trim()}
+                                    variant="outline"
+                                    className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                                >
+                                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="bg-gray-50 p-6 rounded-xl mb-6">
-                        <div className="flex justify-between mb-2">
+                        <div className="flex justify-between mb-2 text-gray-600">
                             <span>Subtotal</span>
                             <span>₹{total}</span>
                         </div>
-                        <div className="flex justify-between font-bold text-lg border-t pt-2">
+
+                        {appliedCoupon && (
+                            <div className="flex justify-between mb-2 text-green-600 font-medium">
+                                <span>Discount ({appliedCoupon.code})</span>
+                                <span>-₹{appliedCoupon.discount}</span>
+                            </div>
+                        )}
+
+                        <div className="flex justify-between mb-2 text-gray-600">
+                            <span>Tax (5%)</span>
+                            <span>₹{tax}</span>
+                        </div>
+
+                        <div className="flex justify-between font-bold text-lg border-t border-gray-200 pt-3 mt-2">
                             <span>Total to Pay</span>
                             <span>₹{finalTotal}</span>
                         </div>
@@ -208,7 +306,7 @@ export default function CheckoutPage() {
                     </div>
 
                     <Button
-                        className="w-full py-6 text-lg font-bold"
+                        className="w-full py-6 text-lg font-bold bg-[#C62828] hover:bg-[#B71C1C]"
                         onClick={handlePlaceOrder}
                         disabled={creatingOrder || (!!user && !selectedAddressId) || !isPaymentValid}
                     >

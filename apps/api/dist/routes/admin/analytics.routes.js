@@ -4,7 +4,7 @@ const express_1 = require("express");
 const auth_middleware_1 = require("../../middlewares/auth.middleware");
 const analytics_controller_1 = require("../../controllers/admin/analytics.controller");
 const router = (0, express_1.Router)();
-router.get('/stats', analytics_controller_1.getDashboardStats);
+router.get('/stats', auth_middleware_1.authenticate, auth_middleware_1.authorizeAdmin, analytics_controller_1.getDashboardStats);
 router.get('/sales-trend', auth_middleware_1.authenticate, auth_middleware_1.authorizeAdmin, analytics_controller_1.getSalesTrend);
 router.get('/top-items', auth_middleware_1.authenticate, auth_middleware_1.authorizeAdmin, analytics_controller_1.getTopItems);
 router.get('/orders-by-status', auth_middleware_1.authenticate, auth_middleware_1.authorizeAdmin, analytics_controller_1.getOrdersByStatus);

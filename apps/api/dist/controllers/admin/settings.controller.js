@@ -28,7 +28,7 @@ const getSettings = async (req, res) => {
 exports.getSettings = getSettings;
 const updateSettings = async (req, res) => {
     try {
-        const { restaurantName, contactPhone, contactEmail, address, minOrderAmount, operatingHours, isOpen, isPaused, seoTitle, seoDescription, seoOgImage } = req.body;
+        const { restaurantName, contactPhone, contactEmail, address, minOrderAmount, operatingHours, isOpen, isPaused, notificationsEnabled, whatsappEnabled, smsEnabled, emailEnabled, seoTitle, seoDescription, seoOgImage, closedMessage } = req.body;
         let settings = await prisma.settings.findFirst();
         const data = {
             restaurantName,
@@ -39,9 +39,14 @@ const updateSettings = async (req, res) => {
             operatingHours,
             isOpen,
             isPaused,
+            notificationsEnabled,
+            whatsappEnabled,
+            smsEnabled,
+            emailEnabled,
             seoTitle,
             seoDescription,
-            seoOgImage
+            seoOgImage,
+            closedMessage
         };
         if (settings) {
             settings = await prisma.settings.update({

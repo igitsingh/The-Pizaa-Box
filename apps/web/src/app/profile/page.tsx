@@ -38,7 +38,9 @@ export default function ProfilePage() {
     const [addingAddress, setAddingAddress] = useState(false);
 
     useEffect(() => {
-        if (!user) {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+        if (!user && !token) {
             router.push('/login');
             return;
         }
@@ -46,7 +48,7 @@ export default function ProfilePage() {
         const fetchData = async () => {
             try {
                 const [ordersRes, userRes] = await Promise.all([
-                    api.get('/orders'),
+                    api.get('/orders/my'),
                     api.get('/auth/me') // Refresh user data to get addresses
                 ]);
                 setOrders(ordersRes.data);

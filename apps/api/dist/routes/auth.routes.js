@@ -6,6 +6,8 @@ const auth_middleware_1 = require("../middlewares/auth.middleware");
 const router = (0, express_1.Router)();
 router.post('/signup', auth_controller_1.signup);
 router.post('/login', auth_controller_1.login);
+router.post('/send-otp', auth_controller_1.sendOTP);
+router.post('/verify-otp', auth_controller_1.verifyOTP);
 router.post('/google', auth_controller_1.googleLogin);
 router.post('/whatsapp', auth_controller_1.whatsappLogin);
 router.get('/me', auth_middleware_1.authenticate, auth_controller_1.getMe);

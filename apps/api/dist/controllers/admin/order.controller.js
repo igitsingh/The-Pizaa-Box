@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateOrderStatus = exports.assignDeliveryPartner = exports.getOrderById = exports.getAllOrders = void 0;
+exports.getOrderNotifications = exports.getOrderStats = exports.updateOrderStatus = exports.assignDeliveryPartner = exports.getOrderById = exports.getAllOrders = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 const getAllOrders = async (req, res) => {
@@ -15,6 +15,7 @@ const getAllOrders = async (req, res) => {
                     },
                 },
                 items: true,
+                address: true,
             },
             orderBy: {
                 createdAt: 'desc',
@@ -122,3 +123,46 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 exports.updateOrderStatus = updateOrderStatus;
+const getOrderStats = async (req, res) => {
+    try {
+        const counts = await prisma.order.groupBy({
+            by: ['status'],
+            _count: {
+                status: true
+            }
+        });
+        const stats = counts.reduce((acc, curr) => {
+            acc[curr.status] = curr._count.status;
+            return acc;
+        }, {});
+        const complaintCount = await prisma.complaint.count({
+            where: { status: 'OPEN' }
+        });
+        res.json({
+            pending: stats['PENDING'] || 0,
+            active: (stats['ACCEPTED'] || 0) + (stats['PREPARING'] || 0) + (stats['BAKING'] || 0) + (stats['READY_FOR_PICKUP'] || 0) + (stats['OUT_FOR_DELIVERY'] || 0),
+            stats,
+            complaintsOpen: complaintCount
+        });
+    }
+    catch (error) {
+        console.error('Get stats error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.getOrderStats = getOrderStats;
+const getOrderNotifications = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const logs = await prisma.notificationLog.findMany({
+            where: { orderId: id },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(logs);
+    }
+    catch (error) {
+        console.error('Get notifications error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+exports.getOrderNotifications = getOrderNotifications;

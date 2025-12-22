@@ -70,7 +70,7 @@ export class InvoiceService {
 
                 doc.text(itemName, itemX, y, { width: 240 });
                 if (variantStr) {
-                    doc.fontSize(8).text(`(${variantStr})`, itemX, y + 12, { color: 'gray' });
+                    doc.fontSize(8).fillColor('gray').text(`(${variantStr})`, itemX, y + 12);
                     doc.fontSize(10).fillColor('black');
                 }
 

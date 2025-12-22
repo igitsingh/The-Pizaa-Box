@@ -5,7 +5,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import JsonLd from "@/components/JsonLd";
 import { Toaster } from 'sonner';
-import SnowEffect from "@/components/SnowEffect";
 import HolidayBanner from "@/components/HolidayBanner";
 import CallbackButton from '@/components/CallbackButton';
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -109,7 +108,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <JsonLd data={organizationSchema} />
-        <SnowEffect />
         <HolidayBanner />
         <Navbar />
         <main className="min-h-screen bg-gray-50">{children}</main>

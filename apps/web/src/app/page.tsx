@@ -26,6 +26,7 @@ export default function Home() {
   const [bestsellers, setBestsellers] = useState<any[]>([]);
   const [loadingBestsellers, setLoadingBestsellers] = useState(true);
   const { location: selectedLocation, setLocation: setSelectedLocation, user, cart, addToCart, removeFromCart } = useStore();
+  const [couponCode, setCouponCode] = useState('NY2026');
 
   // Fetch bestsellers
   useEffect(() => {
@@ -42,6 +43,18 @@ export default function Home() {
       }
     };
     fetchBestsellers();
+
+    const fetchCoupon = async () => {
+      try {
+        const res = await api.get('/coupons/active');
+        if (res.data && res.data.code) {
+          setCouponCode(res.data.code);
+        }
+      } catch (error) {
+        console.error('Failed to fetch active coupon:', error);
+      }
+    };
+    fetchCoupon();
   }, []);
 
   const handleSelectLocation = (location: string) => {
@@ -67,7 +80,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col pb-20 festive-gradient-bg min-h-screen">
+    <div className="flex flex-col pb-20 bg-gray-50 min-h-screen">
       <JsonLd data={websiteSchema} />
 
       {/* Location Modal */}
@@ -87,7 +100,7 @@ export default function Home() {
       />
 
       {/* Location & Delivery Bar - FESTIVE THEME */}
-      <div className="festive-red-gradient text-white">
+      <div className="bg-[#C62828] text-white">
         <div className="container mx-auto px-4 py-2">
           <div className="flex items-center justify-between">
             <button
@@ -104,7 +117,7 @@ export default function Home() {
         </div>
 
         {/* Location Prompt - FESTIVE GREEN */}
-        <div className="festive-green-gradient py-2">
+        <div className="bg-[#1B5E20] py-2">
           <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-2 md:gap-0">
             <div className="flex items-center gap-2 text-center md:text-left">
               <MapPin className="h-4 w-4 shrink-0 text-white" />
@@ -137,7 +150,7 @@ export default function Home() {
       <div className="bg-white border-b border-green-200">
         <div className="container mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="festive-green-gradient p-1.5 rounded">
+            <div className="bg-[#1B5E20] p-1.5 rounded">
               <Smartphone className="h-4 w-4 text-white" />
             </div>
             <div>
@@ -176,7 +189,7 @@ export default function Home() {
             <p className="text-white/90 text-lg md:text-xl mb-6 max-w-2xl mx-auto">
               Ring in the New Year with our special holiday pizzas!
               <span className="block mt-2 font-semibold text-yellow-300">
-                Get 20% OFF on all orders with code: <span className="bg-white text-red-600 px-3 py-1 rounded-lg inline-block mt-2">NEWYEAR2025</span>
+                Get 20% OFF on all orders with code: <span className="bg-white text-red-600 px-3 py-1 rounded-lg inline-block mt-2">{couponCode}</span>
               </span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -328,7 +341,7 @@ export default function Home() {
                           ) : (
                             <Button
                               size="sm"
-                              className="festive-red-gradient hover:opacity-90 text-white rounded-full h-5 text-[8px] px-2 w-full md:w-auto md:h-9 md:text-sm md:px-4 font-bold shadow-md"
+                              className="bg-[#C62828] hover:opacity-90 text-white rounded-full h-5 text-[8px] px-2 w-full md:w-auto md:h-9 md:text-sm md:px-4 font-bold shadow-md"
                               onClick={handleAddToCart}
                             >
                               Add <span className="hidden md:inline ml-1">🎁</span>
@@ -412,7 +425,7 @@ export default function Home() {
               The Pizza Box brings you festive joy with delicious veg pizzas, exceptional service, cozy ambience, freshly baked crusts, and special holiday pricing. <span className="font-semibold text-green-700">Make this season extra special!</span>
             </p>
             <Link href="/menu">
-              <Button className="festive-red-gradient hover:opacity-90 text-white font-bold px-8 py-6 text-lg shadow-lg">
+              <Button className="bg-[#C62828] hover:opacity-90 text-white font-bold px-8 py-6 text-lg shadow-lg">
                 🍕 Explore Festive Menu
               </Button>
             </Link>

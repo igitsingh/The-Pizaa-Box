@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../../middlewares/auth.middleware");
+const membership_controller_1 = require("../../controllers/admin/membership.controller");
+const router = (0, express_1.Router)();
+router.use(auth_middleware_1.authenticate, auth_middleware_1.authorizeAdmin);
+router.get('/overview', membership_controller_1.getMembershipOverview);
+router.get('/members', membership_controller_1.getAllMembers);
+exports.default = router;

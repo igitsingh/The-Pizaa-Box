@@ -111,3 +111,41 @@ export const whatsappEnquiry = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const getMyEnquiries = async (req: Request, res: Response) => {
+    try {
+        // @ts-ignore
+        const userId = req.user?.userId;
+        if (!userId) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const conditions: any[] = [];
+        if (user.phone) conditions.push({ phone: user.phone });
+        if (user.email) conditions.push({ email: user.email });
+
+        if (conditions.length === 0) {
+            return res.json([]);
+        }
+
+        const enquiries = await prisma.enquiry.findMany({
+            where: {
+                OR: conditions
+            },
+            orderBy: { createdAt: 'desc' }
+        });
+
+        res.json(enquiries);
+    } catch (error) {
+        console.error('Get my enquiries error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

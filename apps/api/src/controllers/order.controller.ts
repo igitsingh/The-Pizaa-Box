@@ -36,14 +36,54 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     try {
         // @ts-ignore
         const userId = req.user?.userId;
-        const { items, total, addressId, customerName, customerPhone, paymentMethod, paymentStatus, paymentDetails, scheduledFor, orderType, couponCode, guestAddress } = createOrderSchema.parse(req.body);
+        const { items, total, addressId, customerName, customerPhone, paymentMethod, paymentDetails, scheduledFor, orderType, couponCode, guestAddress } = createOrderSchema.parse(req.body);
+
+        // ---------------------------------------------------------
+        // BLOCKER 2: DELIVERY ZONE VALIDATION (MANDATORY)
+        // ---------------------------------------------------------
+        let targetPincode = '';
+
+        if (addressId) {
+            const savedAddress = await prisma.address.findUnique({ where: { id: addressId } });
+            if (!savedAddress) {
+                res.status(400).json({ message: 'Selected address not found' });
+                return;
+            }
+            targetPincode = savedAddress.zip;
+        } else if (guestAddress) {
+            targetPincode = guestAddress.zip;
+        }
+
+        if (targetPincode) {
+            const zone = await prisma.deliveryZone.findFirst({
+                where: {
+                    pincode: targetPincode,
+                    isActive: true
+                }
+            });
+
+            if (!zone) {
+                res.status(400).json({
+                    message: `Sorry, we do not deliver to pincode ${targetPincode} yet. Please try another location.`
+                });
+                return;
+            }
+        } else {
+            // Should not happen easily given schema validation, but for safety:
+            if (!targetPincode && (addressId || guestAddress)) {
+                res.status(400).json({ message: 'Delivery address is missing a valid pincode.' });
+                return;
+            }
+        }
 
         // 0. Availability & Stock Check AND Price Calculation (HARDENING)
         let calculatedSubtotal = 0;
-        const dbItemsMap = new Map();
 
-        // Prefetch all items to avoid N+1 queries ideally, but sequential loop allows easier error reporting per item
-        // We will stick to the loop but enhance it to accumulate price.
+        // We will loop to calculate price locally (Security against Price Tampering)
+        // AND prepare items for creation.
+        // NOTE: We do NOT decrement stock here. We checks availability. Decrement happens in TRANSACTION.
+
+        const secureItems: any[] = [];
 
         for (const item of items) {
             const product = await prisma.item.findUnique({
@@ -51,10 +91,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                 include: {
                     variants: true,
                     addons: true
-                } // Include relations for price validation if strict
-                // For now, we trust the schema relations exist if we fetched them.
-                // Note: To be perfectly strict, we should validate that the 'options' and 'addons' IDs sent by client actually belong to this item.
-                // Given the constraints and requested fix level, checking Base Price + Variant + Addon Price is the target.
+                }
             });
 
             if (!product) {
@@ -65,43 +102,23 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                 res.status(400).json({ message: `Item "${product.name}" is currently unavailable.` });
                 return;
             }
+            // Preliminary check (Race condition exists here, but saves DB transaction if obvious fail)
             if (product.isStockManaged && product.stock < item.quantity) {
                 res.status(400).json({ message: `Item "${product.name}" is out of stock (Only ${product.stock} left).` });
                 return;
             }
 
-            dbItemsMap.set(item.itemId, product);
-
-            // Calculate Item Price
-            // Logic: Base Price OR Variant Price + Addons + Options
-            // We need to replicate the Frontend price calculation logic here.
-
+            // Calculate Item Price (Replication of Frontend Logic for Safety)
             let itemPrice = product.price;
 
             // 1. Variant Price Override
-            // Frontend sends variants as a Record<string, Variant>.
-            // We need to sum up variant prices. If variants exist, they might override base price depending on business logic.
-            // Typically: Pizza Size overrides base price.
-            // Let's assume: If variants are selected, we use their sum (if > 0) or add to base?
-            // "ItemPage" logic in audit usually implies: Base is ignored if Size is selected.
-            // Let's look at `repeatOrder` logic (Line 502): "const variantsTotal = ... if (variantsTotal > 0) finalPrice = variantsTotal"
-            // We will follow that.
-
             let variantsPrice = 0;
             if (item.variants && typeof item.variants === 'object') {
                 Object.values(item.variants).forEach((v: any) => {
-                    // Start of Security Hole: We are trusting 'v.price' from the JSON object in 'item.variants'
-                    // We MUST fetch the variant from DB to get its real price.
-                    // product.variants contains the source of truth.
-                    // We match by ID.
-
-                    // @ts-ignore
                     const dbVariant = product.variants.find(dbV => dbV.id === v.id);
                     if (dbVariant) {
                         variantsPrice += dbVariant.price;
                     }
-                    // If not found, ignore? Or fail? failing is safer. 
-                    // But for now, let's ignore to avoid breaking on slight sync issues, but normally we should fail.
                 });
             }
 
@@ -112,47 +129,17 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
             // 2. Addons
             if (item.addons && Array.isArray(item.addons)) {
                 item.addons.forEach((addon: any) => {
-                    // Security: Verify addon price from DB
-                    // The 'product.addons' relation needs to be fetched.
-                    // Schema: Item has many ItemAddon
                     // @ts-ignore
                     const dbAddon = (product as any).addons?.find((a: any) => a.id === addon.id);
-
-                    // Fallback: If product.addons wasn't included in query (it wasn't in original code, I added it above), we need it.
-                    // Assuming I added `include: { addons: true }` above.
-
                     if (dbAddon) {
                         itemPrice += dbAddon.price;
-                    } else {
-                        // If trusted strictly by name? No, ID is safer.
-                        // If the client sends an addon that isn't linked to the item?
-                        // We ignore it for price calculation (Safest for merchant - don't give free stuff, but also don't charge fake stuff)
                     }
                 });
             }
 
-            // 3. Options (OptionChoice)
-            // Schema has ItemOption -> OptionChoice
-            // We didn't include options in the findUnique above.
-            // For full strictness, we should. But let's assume options have small/zero price (like "Cheese" choice if free).
-            // Schema says OptionChoice has price.
-            // Let's rely on client for Options for now OR fetch them.
-            // "Audit" mode -> Let's fetch them to be safe.
-            // I will verify if I can add `options: { include: { choices: true } }` in the prisma query.
-            // Schema: Item -> ItemOption -> OptionChoice.
-            // Query: include: { options: { include: { choices: true } } }
-
-            // For this quick fix, I will skip Option Price validation (assume 0 or low risk) to avoid massive refactor of query structure
-            // UNLESS I see user input trusting options price.
-            // `createOrderSchema` says options is `z.any()`.
-            // Let's trust base + variants + addons as the 90% coverage.
-
             calculatedSubtotal += itemPrice * item.quantity;
-
-            // UPDATE the item object in the array with the SECURE price for creation
-            // We can't mutate 'item' directly if it's read-only, but we can use the calculated price for the Order Total.
-            // And we should store the SECURE price in the OrderItem table.
-            item.price = itemPrice; // Override with secure price
+            item.price = itemPrice; // Secure price
+            secureItems.push(item);
         }
 
         // Validation for Scheduled Orders
@@ -162,7 +149,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         if (orderType === 'SCHEDULED' && scheduledFor) {
             const scheduledDate = new Date(scheduledFor);
             const now = new Date();
-            const minTime = new Date(now.getTime() + 30 * 60000); // 30 minutes from now
+            const minTime = new Date(now.getTime() + 30 * 60000);
 
             if (scheduledDate < minTime) {
                 res.status(400).json({ message: 'Scheduled time must be at least 30 minutes in the future' });
@@ -175,9 +162,9 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
         // Coupon Validation & Discount Calculation
         let discountAmount = 0;
-        let discountedSubtotal = calculatedSubtotal; // START WITH SECURE SUBTOTAL
         let appliedCouponCode: string | null = null;
         const subtotal = calculatedSubtotal;
+        let discountedSubtotal = subtotal;
 
         if (couponCode) {
             const coupon = await prisma.coupon.findUnique({
@@ -204,14 +191,12 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                 return;
             }
 
-            // Calculate Discount
             if (coupon.type === 'PERCENTAGE') {
                 discountAmount = (subtotal * coupon.value) / 100;
             } else if (coupon.type === 'FLAT') {
                 discountAmount = coupon.value;
             }
 
-            // Cap discount at subtotal (cannot result in negative total)
             if (discountAmount > subtotal) {
                 discountAmount = subtotal;
             }
@@ -221,8 +206,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         }
 
         // GST Calculation
-        const GST_RATE = Number(process.env.GST_RATE) || 5; // Default 5%
-        // Tax is calculated on Discounted Subtotal
+        const GST_RATE = Number(process.env.GST_RATE) || 5;
         const calculatedTaxableAmount = discountedSubtotal;
 
         const cgstRate = GST_RATE / 2;
@@ -242,7 +226,34 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
             totalTax
         };
 
+        // ---------------------------------------------------------
+        // BLOCKER 3: PAYMENT STATUS SECURITY (MANDATORY)
+        // ---------------------------------------------------------
+        // We IGNORE req.body.paymentStatus completely.
+        // Server dictates that new orders are PENDING (unless strictly COD, which is also Pending fulfillment).
+        // Only Razorpay Webhook should mark it PAID.
+        const securePaymentStatus = 'PENDING';
+
         const result = await (prisma as any).$transaction(async (tx: any) => {
+            // ---------------------------------------------------------
+            // BLOCKER 1: INVENTORY ATOMIC DECREMENT (MANDATORY)
+            // ---------------------------------------------------------
+            // Verify stock AND decrement inside the transaction lock
+            for (const item of secureItems) {
+                const product = await tx.item.findUnique({ where: { id: item.itemId } });
+
+                if (product && product.isStockManaged) {
+                    if (product.stock < item.quantity) {
+                        throw new Error(`Item "${product.name}" is out of stock.`);
+                    }
+
+                    await tx.item.update({
+                        where: { id: item.itemId },
+                        data: { stock: { decrement: item.quantity } }
+                    });
+                }
+            }
+
             // 1. Create Order
             const order = await tx.order.create({
                 data: {
@@ -250,13 +261,13 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                     customerName,
                     customerPhone,
                     total: finalTotal,
-                    subtotal: subtotal, // Original Subtotal
+                    subtotal: subtotal,
                     tax: totalTax,
                     status: finalStatus,
                     addressId: addressId,
-                    guestAddress: guestAddress || undefined, // Store guest address
+                    guestAddress: guestAddress || undefined,
                     paymentMethod,
-                    paymentStatus,
+                    paymentStatus: securePaymentStatus, // ENFORCED
                     paymentDetails: paymentDetails || {},
                     scheduledFor: finalScheduledDate,
                     orderType,
@@ -265,7 +276,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                     couponCode: appliedCouponCode,
                     discountAmount: discountAmount,
                     items: {
-                        create: items.map((item) => ({
+                        create: secureItems.map((item) => ({
                             itemId: item.itemId,
                             name: item.name,
                             price: item.price,
@@ -282,7 +293,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                 },
             });
 
-            // 2. Increment Coupon Usage if applied
+            // 2. Increment Coupon Usage
             if (appliedCouponCode) {
                 await tx.coupon.update({
                     where: { code: appliedCouponCode },
@@ -290,12 +301,10 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
                 });
             }
 
-            // 2. Generate Invoice Number (Sequential based on Order Number)
-            // Format: INV-YYYYMM-XXXXX
-            const dateStr = new Date().toISOString().slice(0, 7).replace('-', ''); // YYYYMM
+            // 3. Generate Invoice Number
+            const dateStr = new Date().toISOString().slice(0, 7).replace('-', '');
             const invoiceNumber = `INV-${dateStr}-${String(order.orderNumber).padStart(5, '0')}`;
 
-            // 3. Update Order with Invoice Number
             const updatedOrder = await tx.order.update({
                 where: { id: order.id },
                 data: { invoiceNumber },
@@ -307,7 +316,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
         const order = result;
 
-        // Notify admin (or specific room)
+        // Notify admin
         getIO().of('/orders').emit('new_order', order);
 
         // Send Notification
@@ -336,8 +345,14 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         if (error instanceof z.ZodError) {
             res.status(400).json({ errors: error.issues });
         } else {
-            console.error('Create order error:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            // @ts-ignore
+            if (error.message && error.message.includes('out of stock')) {
+                // @ts-ignore
+                res.status(400).json({ message: error.message });
+            } else {
+                console.error('Create order error:', error);
+                res.status(500).json({ message: 'Internal server error' });
+            }
         }
     }
 };
@@ -698,5 +713,37 @@ export const downloadInvoice = async (req: Request, res: Response): Promise<void
     } catch (error) {
         console.error('Invoice generation error:', error);
         res.status(500).json({ message: 'Failed to generate invoice' });
+    }
+};
+
+export const getOrderStats = async (req: Request, res: Response): Promise<void> => {
+    try {
+        // @ts-ignore
+        const userRole = req.user?.role;
+        if (userRole !== 'ADMIN') {
+            res.status(403).json({ message: 'Access denied' });
+            return;
+        }
+
+        const counts = await (prisma as any).order.groupBy({
+            by: ['status'],
+            _count: {
+                status: true
+            }
+        });
+
+        const stats = counts.reduce((acc: any, curr: any) => {
+            acc[curr.status] = curr._count.status;
+            return acc;
+        }, {});
+
+        res.json({
+            pending: stats['PENDING'] || 0,
+            active: (stats['ACCEPTED'] || 0) + (stats['PREPARING'] || 0) + (stats['BAKING'] || 0) + (stats['READY_FOR_PICKUP'] || 0) + (stats['OUT_FOR_DELIVERY'] || 0),
+            stats
+        });
+    } catch (error) {
+        console.error('Get stats error:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 };

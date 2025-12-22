@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { io } from 'socket.io-client';
 import { Loader2, CheckCircle, Clock, ChefHat, Truck, Package } from 'lucide-react';
 import FeedbackCard from '@/components/FeedbackCard';
+import ComplaintDialog from '@/components/ComplaintDialog';
 
 interface OrderItem {
     id: string;
@@ -42,6 +43,9 @@ export default function OrderTrackingPage() {
     const { id } = useParams();
     const [order, setOrder] = useState<Order | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // DEBUG: Verify we are loading the correct Component
+    console.log("Mounting Customer OrderTrackingPage");
 
     useEffect(() => {
         const fetchOrder = async () => {
@@ -199,6 +203,10 @@ export default function OrderTrackingPage() {
                 orderStatus={order.status}
                 customerPhone={order.customerPhone}
             />
+
+            <div className="mt-8 flex justify-center">
+                <ComplaintDialog orderId={order.id} />
+            </div>
         </div>
     );
 }

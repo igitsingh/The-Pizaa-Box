@@ -95,3 +95,17 @@ export const deleteLocation = async (req: Request, res: Response): Promise<void>
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const getAllLocations = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const locations = await prisma.location.findMany({
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+        res.json(locations);
+    } catch (error) {
+        console.error('Get all locations error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

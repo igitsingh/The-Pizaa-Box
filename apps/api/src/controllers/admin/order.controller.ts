@@ -128,3 +128,47 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const getOrderStats = async (req: Request, res: Response) => {
+    try {
+        const counts = await prisma.order.groupBy({
+            by: ['status'],
+            _count: {
+                status: true
+            }
+        });
+
+        const stats = counts.reduce((acc: any, curr: any) => {
+            acc[curr.status] = curr._count.status;
+            return acc;
+        }, {});
+
+        const complaintCount = await prisma.complaint.count({
+            where: { status: 'OPEN' }
+        });
+
+        res.json({
+            pending: stats['PENDING'] || 0,
+            active: (stats['ACCEPTED'] || 0) + (stats['PREPARING'] || 0) + (stats['BAKING'] || 0) + (stats['READY_FOR_PICKUP'] || 0) + (stats['OUT_FOR_DELIVERY'] || 0),
+            stats,
+            complaintsOpen: complaintCount
+        });
+    } catch (error) {
+        console.error('Get stats error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export const getOrderNotifications = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const logs = await prisma.notificationLog.findMany({
+            where: { orderId: id },
+            orderBy: { createdAt: 'desc' }
+        });
+        res.json(logs);
+    } catch (error) {
+        console.error('Get notifications error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

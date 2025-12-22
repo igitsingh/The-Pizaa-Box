@@ -6,9 +6,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.me = exports.logout = exports.login = void 0;
 const client_1 = require("@prisma/client");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const auth_1 = require("../../utils/auth");
 const prisma = new client_1.PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecret';
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -16,13 +15,14 @@ const login = async (req, res) => {
         if (!user || user.role !== 'ADMIN') {
             return res.status(401).json({ message: 'Invalid credentials or not an admin' });
         }
+        if (!user.password) {
+            return res.status(401).json({ message: 'This account does not have a password set. Please use OTP login.' });
+        }
         const isValidPassword = await bcryptjs_1.default.compare(password, user.password);
         if (!isValidPassword) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        const token = jsonwebtoken_1.default.sign({ userId: user.id, role: user.role }, JWT_SECRET, {
-            expiresIn: '1d',
-        });
+        const token = (0, auth_1.generateToken)(user.id, user.role);
         // Set HTTP-only cookie
         res.cookie('admin_token', token, {
             httpOnly: true,

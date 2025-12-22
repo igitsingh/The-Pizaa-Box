@@ -69,6 +69,7 @@ const deleteAddress = async (req, res) => {
             return;
         }
         await db_1.default.address.delete({ where: { id } });
+        res.json({ message: 'Address deleted successfully' });
     }
     catch (error) {
         res.status(500).json({ message: 'Internal server error' });

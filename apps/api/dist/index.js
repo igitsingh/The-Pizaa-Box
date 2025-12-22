@@ -29,6 +29,17 @@ const user_routes_2 = __importDefault(require("./routes/admin/user.routes"));
 const settings_routes_1 = __importDefault(require("./routes/admin/settings.routes"));
 const location_routes_1 = __importDefault(require("./routes/location.routes"));
 const payment_routes_1 = __importDefault(require("./routes/payment.routes"));
+const settings_routes_2 = __importDefault(require("./routes/settings.routes"));
+const coupon_routes_2 = __importDefault(require("./routes/coupon.routes"));
+const feedback_routes_1 = __importDefault(require("./routes/feedback.routes"));
+const feedback_routes_2 = __importDefault(require("./routes/admin/feedback.routes"));
+const enquiry_routes_1 = __importDefault(require("./routes/enquiry.routes"));
+const enquiry_routes_2 = __importDefault(require("./routes/admin/enquiry.routes"));
+const referral_routes_1 = __importDefault(require("./routes/referral.routes"));
+const membership_routes_1 = __importDefault(require("./routes/membership.routes"));
+const referral_routes_2 = __importDefault(require("./routes/admin/referral.routes"));
+const membership_routes_2 = __importDefault(require("./routes/admin/membership.routes"));
+const complaint_routes_1 = __importDefault(require("./routes/complaint.routes"));
 // Middleware
 app.use(express_1.default.json({
     verify: (req, res, buf) => {
@@ -41,7 +52,7 @@ app.use(express_1.default.json({
 }));
 app.use((0, cookie_parser_1.default)());
 app.use((0, cors_1.default)({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
     credentials: true,
 }));
 app.use((0, helmet_1.default)());
@@ -50,7 +61,9 @@ const delivery_partner_routes_1 = __importDefault(require("./routes/admin/delive
 const analytics_routes_1 = __importDefault(require("./routes/admin/analytics.routes"));
 const stock_routes_1 = __importDefault(require("./routes/admin/stock.routes"));
 const payment_routes_2 = __importDefault(require("./routes/admin/payment.routes"));
-const complaint_routes_1 = __importDefault(require("./routes/admin/complaint.routes"));
+const complaint_routes_2 = __importDefault(require("./routes/admin/complaint.routes"));
+const reports_routes_1 = __importDefault(require("./routes/admin/reports.routes"));
+const location_routes_2 = __importDefault(require("./routes/admin/location.routes"));
 // Routes
 app.use('/api/auth', auth_routes_1.default);
 app.use('/api/menu', menu_routes_1.default);
@@ -67,10 +80,23 @@ app.use('/api/admin/delivery-partners', delivery_partner_routes_1.default);
 app.use('/api/admin/analytics', analytics_routes_1.default);
 app.use('/api/admin/stock', stock_routes_1.default);
 app.use('/api/admin/payments', payment_routes_2.default);
-app.use('/api/admin/complaints', complaint_routes_1.default);
+app.use('/api/admin/complaints', complaint_routes_2.default);
+app.use('/api/admin/feedbacks', feedback_routes_2.default);
+app.use('/api/admin/enquiries', enquiry_routes_2.default);
+app.use('/api/admin/reports', reports_routes_1.default);
+app.use('/api/admin/referrals', referral_routes_2.default);
+app.use('/api/admin/memberships', membership_routes_2.default);
+app.use('/api/admin/locations', location_routes_2.default);
 app.use('/api/admin', admin_routes_1.default);
 app.use('/api/locations', location_routes_1.default);
+app.use('/api/settings', settings_routes_2.default);
 app.use('/api/payments', payment_routes_1.default);
+app.use('/api/coupons', coupon_routes_2.default);
+app.use('/api/feedback', feedback_routes_1.default);
+app.use('/api/enquiry', enquiry_routes_1.default);
+app.use('/api/referral', referral_routes_1.default);
+app.use('/api/membership', membership_routes_1.default);
+app.use('/api/complaints', complaint_routes_1.default);
 // Basic Route
 app.get('/', (req, res) => {
     res.json({ message: 'Welcome to The Pizza Box API' });
@@ -87,4 +113,5 @@ io.on('connection', (socket) => {
 const PORT = 5001; // Force port 5001 to avoid conflict with AirPlay on 5000
 httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`API Ready at http://localhost:${PORT}`);
 });
