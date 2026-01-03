@@ -136,7 +136,7 @@ export default function AnalyticsPage() {
                                 />
                                 <Tooltip
                                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                    formatter={(value: number) => [`₹${value}`, 'Revenue']}
+                                    formatter={(value: number | undefined) => [`₹${value ?? 0}`, 'Revenue']}
                                     labelFormatter={(label) => new Date(label).toLocaleDateString()}
                                 />
                                 <Line type="monotone" dataKey="sales" stroke="#ea580c" strokeWidth={2} dot={false} />
