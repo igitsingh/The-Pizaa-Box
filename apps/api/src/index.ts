@@ -67,6 +67,7 @@ import adminPaymentRoutes from './routes/admin/payment.routes';
 import adminComplaintRoutes from './routes/admin/complaint.routes';
 import adminReportsRoutes from './routes/admin/reports.routes';
 import adminLocationRoutes from './routes/admin/location.routes';
+import adminKitchenRoutes from './routes/admin/kitchen.routes';
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -77,6 +78,7 @@ app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin/menu', adminMenuRoutes);
 app.use('/api/admin/categories', adminCategoryRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
+app.use('/api/admin/kitchen', adminKitchenRoutes);
 app.use('/api/admin/coupons', adminCouponRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/settings', adminSettingsRoutes);

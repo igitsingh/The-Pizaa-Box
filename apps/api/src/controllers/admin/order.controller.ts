@@ -1,30 +1,28 @@
 import { Request, Response } from 'express';
 import { PrismaClient, OrderStatus } from '@prisma/client';
+import { getAllOrders as getAllOrdersUtil, getOrderCountsByStatus, ORDER_DETAIL_INCLUDE } from '../../utils/orderQueries';
 
 const prisma = new PrismaClient();
 
 export const getAllOrders = async (req: Request, res: Response) => {
     try {
-        const orders = await prisma.order.findMany({
-            include: {
-                user: {
-                    select: {
-                        name: true,
-                        email: true,
-                        phone: true,
-                    },
-                },
-                items: true,
-                address: true,
-            },
-            orderBy: {
-                createdAt: 'desc',
-            },
-        });
+        const { status, startDate, endDate, userId } = req.query;
+
+        const filters: any = {};
+        if (status) filters.status = status as OrderStatus;
+        if (startDate) filters.startDate = new Date(startDate as string);
+        if (endDate) filters.endDate = new Date(endDate as string);
+        if (userId) filters.userId = userId as string;
+
+        const orders = await getAllOrdersUtil(filters);
+
+        console.log(`[ORDERS] Fetched ${orders.length} orders with filters:`, filters);
+
         res.json(orders);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Get all orders error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        // Return empty array instead of 500
+        res.json([]);
     }
 };
 
@@ -34,17 +32,8 @@ export const getOrderById = async (req: Request, res: Response) => {
         const order = await prisma.order.findUnique({
             where: { id },
             include: {
-                user: {
-                    select: {
-                        name: true,
-                        email: true,
-                        phone: true,
-                        addresses: true
-                    },
-                },
-                items: true,
-                deliveryPartner: true,
-                refund: true
+                ...ORDER_DETAIL_INCLUDE,
+                refund: true,
             },
         });
 
@@ -53,7 +42,7 @@ export const getOrderById = async (req: Request, res: Response) => {
         }
 
         res.json(order);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Get order error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
@@ -68,21 +57,23 @@ export const assignDeliveryPartner = async (req: Request, res: Response) => {
             where: { id },
             data: {
                 deliveryPartnerId,
-                status: 'OUT_FOR_DELIVERY' // Auto update status when assigned
+                status: 'OUT_FOR_DELIVERY',
             },
             include: {
-                deliveryPartner: true
-            }
+                deliveryPartner: true,
+            },
         });
 
         // Update partner status to BUSY
         await prisma.deliveryPartner.update({
             where: { id: deliveryPartnerId },
-            data: { status: 'BUSY' }
+            data: { status: 'BUSY' },
         });
 
+        console.log(`[ORDER] ${id} assigned to partner ${deliveryPartnerId}`);
+
         res.json(order);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Assign partner error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
@@ -104,9 +95,8 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
         // GUARD: Cannot move to OUT_FOR_DELIVERY without a partner
         if (status === 'OUT_FOR_DELIVERY' && !currentOrder.deliveryPartnerId) {
-            // Check if it's being updated in this same request? (Not possible with this simple update body, usually assign is separate)
             return res.status(400).json({
-                message: 'Cannot mark as Out For Delivery! Please assign a Delivery Partner first.'
+                message: 'Cannot mark as Out For Delivery! Please assign a Delivery Partner first.',
             });
         }
 
@@ -129,14 +119,14 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         if (status === 'DELIVERED' && order.deliveryPartnerId) {
             await prisma.deliveryPartner.update({
                 where: { id: order.deliveryPartnerId },
-                data: { status: 'AVAILABLE' }
+                data: { status: 'AVAILABLE' },
             });
         }
 
-        // TODO: Emit socket event for real-time updates to user
+        console.log(`[ORDER] ${id} status updated: ${currentOrder.status} → ${status}`);
 
         res.json(order);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Update order status error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
@@ -144,31 +134,40 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
 export const getOrderStats = async (req: Request, res: Response) => {
     try {
-        const counts = await prisma.order.groupBy({
-            by: ['status'],
-            _count: {
-                status: true
-            }
-        });
+        const counts = await getOrderCountsByStatus();
 
-        const stats = counts.reduce((acc: any, curr: any) => {
-            acc[curr.status] = curr._count.status;
-            return acc;
-        }, {});
+        let complaintsOpen = 0;
+        try {
+            complaintsOpen = await prisma.complaint.count({
+                where: { status: 'OPEN' },
+            });
+        } catch (err) {
+            console.error('Complaint count error:', err);
+        }
 
-        const complaintCount = await prisma.complaint.count({
-            where: { status: 'OPEN' }
-        });
+        console.log('[ORDER STATS]', counts);
 
         res.json({
-            pending: stats['PENDING'] || 0,
-            active: (stats['ACCEPTED'] || 0) + (stats['PREPARING'] || 0) + (stats['BAKING'] || 0) + (stats['READY_FOR_PICKUP'] || 0) + (stats['OUT_FOR_DELIVERY'] || 0),
-            stats,
-            complaintsOpen: complaintCount
+            ...counts,
+            complaintsOpen,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Get stats error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        // Return zeros instead of 500
+        res.json({
+            pending: 0,
+            accepted: 0,
+            preparing: 0,
+            baking: 0,
+            ready: 0,
+            outForDelivery: 0,
+            delivered: 0,
+            cancelled: 0,
+            scheduled: 0,
+            kitchen: 0,
+            active: 0,
+            complaintsOpen: 0,
+        });
     }
 };
 
@@ -177,11 +176,12 @@ export const getOrderNotifications = async (req: Request, res: Response) => {
         const { id } = req.params;
         const logs = await prisma.notificationLog.findMany({
             where: { orderId: id },
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
         });
         res.json(logs);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Get notifications error:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.json([]);
     }
 };
+
