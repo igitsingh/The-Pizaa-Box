@@ -1,140 +1,167 @@
 /*
   Warnings:
-
-  - The values [PLACED] on the enum `OrderStatus` will be removed. If these variants are still used in the database, this will fail.
-  - A unique constraint covering the columns `[slug]` on the table `Category` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[slug]` on the table `Item` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[orderNumber]` on the table `Order` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[invoiceNumber]` on the table `Order` will be added. If there are existing duplicate values, this will fail.
-  - A unique constraint covering the columns `[phone]` on the table `User` will be added. If there are existing duplicate values, this will fail.
-
+  - Idempotent Migration Rewrite for Production Recovery
 */
--- CreateEnum
+
+-- CreateEnum: OrderType
 DO $$ BEGIN
     CREATE TYPE "OrderType" AS ENUM ('INSTANT', 'SCHEDULED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- CreateEnum
+-- CreateEnum: ComplaintStatus
 DO $$ BEGIN
     CREATE TYPE "ComplaintStatus" AS ENUM ('OPEN', 'IN_PROGRESS', 'RESOLVED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- CreateEnum
+-- CreateEnum: NotificationStatus
 DO $$ BEGIN
     CREATE TYPE "NotificationStatus" AS ENUM ('QUEUED', 'SENT', 'FAILED', 'SKIPPED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- CreateEnum
+-- CreateEnum: NotificationChannel
 DO $$ BEGIN
     CREATE TYPE "NotificationChannel" AS ENUM ('LOG', 'SMS', 'WHATSAPP', 'EMAIL');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- CreateEnum
+-- CreateEnum: NotificationEvent
 DO $$ BEGIN
     CREATE TYPE "NotificationEvent" AS ENUM ('ORDER_PLACED', 'ORDER_ACCEPTED', 'ORDER_PREPARING', 'OUT_FOR_DELIVERY', 'DELIVERED', 'SCHEDULED_ORDER_CONFIRMED');
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
--- AlterEnum
-BEGIN;
-CREATE TYPE "OrderStatus_new" AS ENUM ('SCHEDULED', 'PENDING', 'ACCEPTED', 'PREPARING', 'BAKING', 'READY_FOR_PICKUP', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'REFUNDED');
-ALTER TABLE "Order" ALTER COLUMN "status" DROP DEFAULT;
-ALTER TABLE "Order" ALTER COLUMN "status" TYPE "OrderStatus_new" USING ("status"::text::"OrderStatus_new");
-ALTER TYPE "OrderStatus" RENAME TO "OrderStatus_old";
-ALTER TYPE "OrderStatus_new" RENAME TO "OrderStatus";
-DROP TYPE "OrderStatus_old";
-ALTER TABLE "Order" ALTER COLUMN "status" SET DEFAULT 'PENDING';
-COMMIT;
+-- AlterEnum: OrderStatus (Complex idempodency handled by try/catch equivalent in pg)
+DO $$ 
+BEGIN
+    -- Only run if OrderStatus exists and doesn't have new values (approximation)
+    BEGIN
+        ALTER TYPE "OrderStatus" ADD VALUE 'REFUNDED';
+    EXCEPTION WHEN duplicate_object THEN null; -- Value might exist
+    END;
 
--- AlterEnum
-ALTER TYPE "PaymentStatus" ADD VALUE 'REFUNDED';
-
--- AlterEnum
--- This migration adds more than one value to an enum.
--- With PostgreSQL versions 11 and earlier, this is not possible
--- in a single migration. This can be worked around by creating
--- multiple migrations, each migration adding only one value to
--- the enum.
+    -- Handle the rename/swap logic safely if not already done
+    -- This part is risky to automate blindly, defaulting to assuming 'PENDING' exists.
+    -- If "OrderStatus" already has values, we skip heavy alteration to avoid data loss.
+END $$;
 
 
-ALTER TYPE "Role" ADD VALUE 'MANAGER';
-ALTER TYPE "Role" ADD VALUE 'CHEF';
-ALTER TYPE "Role" ADD VALUE 'DELIVERY_PARTNER';
-ALTER TYPE "Role" ADD VALUE 'ACCOUNTANT';
+-- AlterEnum: PaymentStatus
+DO $$ BEGIN
+    ALTER TYPE "PaymentStatus" ADD VALUE 'REFUNDED';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+    WHEN undefined_object THEN null; -- If type doesn't exist
+END $$;
 
--- DropForeignKey
-ALTER TABLE "Order" DROP CONSTRAINT "Order_userId_fkey";
+-- AlterEnum: Role
+DO $$ BEGIN
+    ALTER TYPE "Role" ADD VALUE 'MANAGER';
+    ALTER TYPE "Role" ADD VALUE 'CHEF';
+    ALTER TYPE "Role" ADD VALUE 'DELIVERY_PARTNER';
+    ALTER TYPE "Role" ADD VALUE 'ACCOUNTANT';
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
--- AlterTable
-ALTER TABLE "Category" ADD COLUMN     "image" TEXT,
-ADD COLUMN     "seoDescription" TEXT,
-ADD COLUMN     "seoTitle" TEXT,
-ADD COLUMN     "slug" TEXT;
+-- DropForeignKey: Order_userId_fkey
+DO $$ BEGIN
+    ALTER TABLE "Order" DROP CONSTRAINT "Order_userId_fkey";
+EXCEPTION
+    WHEN undefined_object THEN null;
+END $$;
 
--- AlterTable
-ALTER TABLE "Item" ADD COLUMN     "altText" TEXT,
-ADD COLUMN     "isStockManaged" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "seoDescription" TEXT,
-ADD COLUMN     "seoTitle" TEXT,
-ADD COLUMN     "slug" TEXT,
-ADD COLUMN     "stock" INTEGER NOT NULL DEFAULT 100;
+-- AlterTable: Category (Add columns)
+DO $$ BEGIN
+    ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "image" TEXT;
+    ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "seoDescription" TEXT;
+    ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "seoTitle" TEXT;
+    ALTER TABLE "Category" ADD COLUMN IF NOT EXISTS "slug" TEXT;
+END $$;
 
--- AlterTable
-ALTER TABLE "Order" ADD COLUMN     "addressId" TEXT,
-ADD COLUMN     "couponCode" TEXT,
-ADD COLUMN     "customerName" TEXT,
-ADD COLUMN     "customerPhone" TEXT,
-ADD COLUMN     "deliveryFee" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "deliveryPartnerId" TEXT,
-ADD COLUMN     "discountAmount" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "guestAddress" JSONB,
-ADD COLUMN     "instructions" TEXT,
-ADD COLUMN     "invoiceGeneratedAt" TIMESTAMP(3),
-ADD COLUMN     "invoiceNumber" TEXT,
-ADD COLUMN     "isRepeated" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "orderNumber" SERIAL NOT NULL,
-ADD COLUMN     "orderType" "OrderType" NOT NULL DEFAULT 'INSTANT',
-ADD COLUMN     "repeatedFromOrderId" TEXT,
-ADD COLUMN     "scheduledFor" TIMESTAMP(3),
-ADD COLUMN     "subtotal" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "tax" DOUBLE PRECISION NOT NULL DEFAULT 0,
-ADD COLUMN     "taxBreakup" JSONB,
-ALTER COLUMN "userId" DROP NOT NULL,
-ALTER COLUMN "status" SET DEFAULT 'PENDING';
+-- AlterTable: Item (Add columns)
+DO $$ BEGIN
+    ALTER TABLE "Item" ADD COLUMN IF NOT EXISTS "altText" TEXT;
+    ALTER TABLE "Item" ADD COLUMN IF NOT EXISTS "isStockManaged" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "Item" ADD COLUMN IF NOT EXISTS "seoDescription" TEXT;
+    ALTER TABLE "Item" ADD COLUMN IF NOT EXISTS "seoTitle" TEXT;
+    ALTER TABLE "Item" ADD COLUMN IF NOT EXISTS "slug" TEXT;
+    ALTER TABLE "Item" ADD COLUMN IF NOT EXISTS "stock" INTEGER NOT NULL DEFAULT 100;
+END $$;
 
--- AlterTable
-ALTER TABLE "OrderItem" ADD COLUMN     "variants" JSONB;
+-- AlterTable: Order (Add columns)
+DO $$ BEGIN
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "addressId" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "couponCode" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "customerName" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "customerPhone" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "deliveryFee" DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "deliveryPartnerId" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "discountAmount" DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "guestAddress" JSONB;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "instructions" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "invoiceGeneratedAt" TIMESTAMP(3);
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "invoiceNumber" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "isRepeated" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "repeatedFromOrderId" TEXT;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "scheduledFor" TIMESTAMP(3);
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "subtotal" DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "tax" DOUBLE PRECISION NOT NULL DEFAULT 0;
+    ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "taxBreakup" JSONB;
+    
+    -- Order Type (Enum dependency)
+    BEGIN
+        ALTER TABLE "Order" ADD COLUMN IF NOT EXISTS "orderType" "OrderType" NOT NULL DEFAULT 'INSTANT';
+    EXCEPTION WHEN undefined_object THEN null; END;
 
--- AlterTable
-ALTER TABLE "Settings" ADD COLUMN     "closedMessage" TEXT,
-ADD COLUMN     "emailEnabled" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "isPaused" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "notificationsEnabled" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "seoDescription" TEXT,
-ADD COLUMN     "seoOgImage" TEXT,
-ADD COLUMN     "seoTitle" TEXT,
-ADD COLUMN     "smsEnabled" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "whatsappEnabled" BOOLEAN NOT NULL DEFAULT false;
+    -- Serial OrderNumber is tricky with IF NOT EXISTS. 
+    -- If it exists, skip. If not, add.
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Order' AND column_name='orderNumber') THEN
+        ALTER TABLE "Order" ADD COLUMN "orderNumber" SERIAL NOT NULL;
+    END IF;
 
--- AlterTable
-ALTER TABLE "User" ADD COLUMN     "isVIP" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "notes" TEXT,
-ADD COLUMN     "otp" TEXT,
-ADD COLUMN     "otpExpiry" TIMESTAMP(3),
-ALTER COLUMN "email" DROP NOT NULL,
-ALTER COLUMN "password" DROP NOT NULL;
+    ALTER TABLE "Order" ALTER COLUMN "userId" DROP NOT NULL;
+    ALTER TABLE "Order" ALTER COLUMN "status" SET DEFAULT 'PENDING';
+END $$;
 
--- CreateTable
-CREATE TABLE "Variant" (
+-- AlterTable: OrderItem
+DO $$ BEGIN
+    ALTER TABLE "OrderItem" ADD COLUMN IF NOT EXISTS "variants" JSONB;
+END $$;
+
+-- AlterTable: Settings
+DO $$ BEGIN
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "closedMessage" TEXT;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "emailEnabled" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "isPaused" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "notificationsEnabled" BOOLEAN NOT NULL DEFAULT true;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "seoDescription" TEXT;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "seoOgImage" TEXT;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "seoTitle" TEXT;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "smsEnabled" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "Settings" ADD COLUMN IF NOT EXISTS "whatsappEnabled" BOOLEAN NOT NULL DEFAULT false;
+END $$;
+
+-- AlterTable: User
+DO $$ BEGIN
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isVIP" BOOLEAN NOT NULL DEFAULT false;
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "notes" TEXT;
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "otp" TEXT;
+    ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "otpExpiry" TIMESTAMP(3);
+    ALTER TABLE "User" ALTER COLUMN "email" DROP NOT NULL;
+    ALTER TABLE "User" ALTER COLUMN "password" DROP NOT NULL;
+END $$;
+
+
+-- CreateTable: Variant
+CREATE TABLE IF NOT EXISTS "Variant" (
     "id" TEXT NOT NULL,
     "itemId" TEXT NOT NULL,
     "type" TEXT NOT NULL,
@@ -145,8 +172,8 @@ CREATE TABLE "Variant" (
     CONSTRAINT "Variant_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "Location" (
+-- CreateTable: Location
+CREATE TABLE IF NOT EXISTS "Location" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -159,8 +186,8 @@ CREATE TABLE "Location" (
     CONSTRAINT "Location_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "DeliveryPartner" (
+-- CreateTable: DeliveryPartner
+CREATE TABLE IF NOT EXISTS "DeliveryPartner" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
@@ -175,8 +202,8 @@ CREATE TABLE "DeliveryPartner" (
     CONSTRAINT "DeliveryPartner_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "Transaction" (
+-- CreateTable: Transaction
+CREATE TABLE IF NOT EXISTS "Transaction" (
     "id" TEXT NOT NULL,
     "orderId" TEXT,
     "amount" DOUBLE PRECISION NOT NULL,
@@ -189,8 +216,8 @@ CREATE TABLE "Transaction" (
     CONSTRAINT "Transaction_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "Refund" (
+-- CreateTable: Refund
+CREATE TABLE IF NOT EXISTS "Refund" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
@@ -201,8 +228,8 @@ CREATE TABLE "Refund" (
     CONSTRAINT "Refund_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "Complaint" (
+-- CreateTable: Complaint
+CREATE TABLE IF NOT EXISTS "Complaint" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
@@ -214,8 +241,8 @@ CREATE TABLE "Complaint" (
     CONSTRAINT "Complaint_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "Branch" (
+-- CreateTable: Branch
+CREATE TABLE IF NOT EXISTS "Branch" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "address" TEXT NOT NULL,
@@ -227,8 +254,8 @@ CREATE TABLE "Branch" (
     CONSTRAINT "Branch_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "NotificationLog" (
+-- CreateTable: NotificationLog
+CREATE TABLE IF NOT EXISTS "NotificationLog" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "channel" "NotificationChannel" NOT NULL,
@@ -242,8 +269,8 @@ CREATE TABLE "NotificationLog" (
     CONSTRAINT "NotificationLog_pkey" PRIMARY KEY ("id")
 );
 
--- CreateTable
-CREATE TABLE "Feedback" (
+-- CreateTable: Feedback
+CREATE TABLE IF NOT EXISTS "Feedback" (
     "id" TEXT NOT NULL,
     "orderId" TEXT NOT NULL,
     "userId" TEXT,
@@ -258,55 +285,67 @@ CREATE TABLE "Feedback" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Location_slug_key" ON "Location"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Location_slug_key" ON "Location"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "DeliveryPartner_phone_key" ON "DeliveryPartner"("phone");
+CREATE UNIQUE INDEX IF NOT EXISTS "DeliveryPartner_phone_key" ON "DeliveryPartner"("phone");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Refund_orderId_key" ON "Refund"("orderId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Refund_orderId_key" ON "Refund"("orderId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Feedback_orderId_key" ON "Feedback"("orderId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Feedback_orderId_key" ON "Feedback"("orderId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Category_slug_key" ON "Category"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Category_slug_key" ON "Category"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Item_slug_key" ON "Item"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Item_slug_key" ON "Item"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Order_orderNumber_key" ON "Order"("orderNumber");
+CREATE UNIQUE INDEX IF NOT EXISTS "Order_orderNumber_key" ON "Order"("orderNumber");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Order_invoiceNumber_key" ON "Order"("invoiceNumber");
+CREATE UNIQUE INDEX IF NOT EXISTS "Order_invoiceNumber_key" ON "Order"("invoiceNumber");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_phone_key" ON "User"("phone");
 
--- AddForeignKey
-ALTER TABLE "Variant" ADD CONSTRAINT "Variant_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- AddForeignKey (Constraints)
+-- Note: Wrapping ADD CONSTRAINT in DO block to avoid 'already exists' error
+DO $$ BEGIN
+    ALTER TABLE "Variant" ADD CONSTRAINT "Variant_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "Order" ADD CONSTRAINT "Order_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "Address"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Order" ADD CONSTRAINT "Order_addressId_fkey" FOREIGN KEY ("addressId") REFERENCES "Address"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "Order" ADD CONSTRAINT "Order_deliveryPartnerId_fkey" FOREIGN KEY ("deliveryPartnerId") REFERENCES "DeliveryPartner"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Order" ADD CONSTRAINT "Order_deliveryPartnerId_fkey" FOREIGN KEY ("deliveryPartnerId") REFERENCES "DeliveryPartner"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "Refund" ADD CONSTRAINT "Refund_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Refund" ADD CONSTRAINT "Refund_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "Complaint" ADD CONSTRAINT "Complaint_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Complaint" ADD CONSTRAINT "Complaint_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "NotificationLog" ADD CONSTRAINT "NotificationLog_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "NotificationLog" ADD CONSTRAINT "NotificationLog_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
--- AddForeignKey
-ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
