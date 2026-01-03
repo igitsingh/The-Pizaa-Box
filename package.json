@@ -1,0 +1,15 @@
+{
+    "name": "the-pizza-box",
+    "private": true,
+    "workspaces": [
+        "apps/*"
+    ],
+    "scripts": {
+        "dev": "npm run dev --workspaces",
+        "build": "npm run build --workspaces",
+        "lint": "npm run lint --workspaces"
+    },
+    "devDependencies": {
+        "prettier": "^3.0.0"
+    }
+}
