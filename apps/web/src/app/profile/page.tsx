@@ -5,7 +5,9 @@ import { useStore } from '@/store/useStore';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, MapPin, Package } from 'lucide-react';
+import { Loader2, Plus, MapPin, Package, MessageSquareWarning } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface Address {
     id: string;
@@ -23,10 +25,19 @@ interface Order {
     items: any[];
 }
 
+interface Complaint {
+    id: string;
+    subject: string;
+    message: string;
+    status: "OPEN" | "IN_PROGRESS" | "RESOLVED";
+    createdAt: string;
+}
+
 export default function ProfilePage() {
     const { user, setUser } = useStore();
     const router = useRouter();
     const [orders, setOrders] = useState<Order[]>([]);
+    const [complaints, setComplaints] = useState<Complaint[]>([]);
     const [addresses, setAddresses] = useState<Address[]>([]);
     const [loading, setLoading] = useState(true);
     const [showAddressForm, setShowAddressForm] = useState(false);
@@ -47,25 +58,26 @@ export default function ProfilePage() {
 
         const fetchData = async () => {
             try {
-                const [ordersRes, userRes] = await Promise.all([
+                const [ordersRes, complaintsRes, userRes] = await Promise.all([
                     api.get('/orders/my').catch(err => {
-                        // If 401/404 on orders, it might just mean no orders OR invalid user.
-                        // We let the auth/me call decide the auth state.
                         if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-                            throw err; // Re-throw to trigger catch block
+                            throw err;
                         }
-                        return { data: [] }; // Return empty orders if other error
+                        return { data: [] };
                     }),
-                    api.get('/auth/me') // This is critical. If this fails, we logout.
+                    api.get('/complaints/my').catch(err => {
+                        return { data: [] };
+                    }),
+                    api.get('/auth/me')
                 ]);
 
                 setOrders(ordersRes.data || []);
+                setComplaints(complaintsRes.data || []);
                 setAddresses(userRes.data?.addresses || []);
-                setUser(userRes.data); // Update store
+                setUser(userRes.data);
             } catch (error: any) {
                 console.error('Failed to fetch profile data', error);
                 if (error.response && (error.response.status === 401 || error.response.status === 404)) {
-                    // Token invalid or User deleted
                     localStorage.removeItem('token');
                     setUser(null);
                     router.push('/login');
@@ -178,33 +190,7 @@ export default function ProfilePage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-xs h-6 px-2"
-                                            onClick={() => {
-                                                // Populate form for editing
-                                                setStreet(addr.street);
-                                                setCity(addr.city);
-                                                setZip(addr.zip);
-                                                setShowAddressForm(true);
-                                                // We need a way to know we are editing. For simplicity, let's delete the old one and add new? 
-                                                // No, that changes ID. Let's add an editing ID state.
-                                                // Since I can't easily add state in this replace block without changing the whole file, 
-                                                // I will just delete the old one and let the user re-save. 
-                                                // Wait, that's bad UX. 
-                                                // I'll assume the user is okay with "Delete & Re-add" behavior for now OR I'll try to add state in a separate call.
-                                                // Actually, I can just use the form to "Add New" and user can delete the old one. 
-                                                // But user specifically asked for "Edit".
-                                                // Let's just show an alert for now that Edit is coming or try to implement it properly.
-                                                // I will implement a simple "Delete" button for now as a quick fix to "Edit" (Delete -> Add New).
-                                                // AND I will add a proper Edit state in the next step if needed.
-                                                // Actually, let's just add the Delete button first as it's easy.
-                                            }}
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-6 px-2"
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-6 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                             onClick={async () => {
                                                 if (!confirm('Delete address?')) return;
                                                 try {
@@ -222,40 +208,79 @@ export default function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Order History */}
+                {/* History Tabs */}
                 <div className="md:col-span-2">
-                    <div className="bg-white p-6 rounded-xl shadow-sm border">
-                        <h2 className="text-xl font-bold mb-6">Order History</h2>
+                    <div className="bg-white p-6 rounded-xl shadow-sm border h-full">
+                        <Tabs defaultValue="orders" className="w-full">
+                            <TabsList className="mb-6 w-full justify-start">
+                                <TabsTrigger value="orders" className="flex-1 md:flex-none">Order History</TabsTrigger>
+                                <TabsTrigger value="complaints" className="flex-1 md:flex-none">My Complaints</TabsTrigger>
+                            </TabsList>
 
-                        {orders.length === 0 ? (
-                            <div className="text-center py-12 text-gray-500">
-                                <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                <p>No orders yet.</p>
-                                <Button variant="link" onClick={() => router.push('/menu')}>Start Ordering</Button>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {orders.map((order) => (
-                                    <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => router.push(`/orders/${order.id}`)}>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="font-mono text-sm text-gray-500">#{order.id.slice(0, 8)}</span>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium 
-                                                ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
-                                                    order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                                                        'bg-blue-100 text-blue-800'}`}>
-                                                {order.status}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-end">
-                                            <p className="text-sm text-gray-600">
-                                                {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-                                            </p>
-                                            <p className="font-bold">₹{order.total}</p>
-                                        </div>
+                            <TabsContent value="orders">
+                                {orders.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <Package className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                                        <p>No orders yet.</p>
+                                        <Button variant="link" onClick={() => router.push('/menu')}>Start Ordering</Button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
+                                ) : (
+                                    <div className="space-y-4">
+                                        {orders.map((order) => (
+                                            <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => router.push(`/orders/${order.id}`)}>
+                                                <div className="flex justify-between items-center mb-2">
+                                                    <span className="font-mono text-sm text-gray-500">#{order.id.slice(0, 8)}</span>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium 
+                                                        ${order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' :
+                                                            order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                                                                'bg-blue-100 text-blue-800'}`}>
+                                                        {order.status}
+                                                    </span>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <p className="text-sm text-gray-600">
+                                                        {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+                                                    </p>
+                                                    <p className="font-bold">₹{order.total}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="complaints">
+                                {complaints.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <MessageSquareWarning className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                                        <p>No complaints submitted.</p>
+                                        <p className="text-xs mt-1">If you have an issue with an order, go to Order Details to report it.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {complaints.map((complaint) => (
+                                            <div key={complaint.id} className="border rounded-lg p-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className="font-medium text-slate-900">{complaint.subject}</h3>
+                                                    <Badge variant={
+                                                        complaint.status === 'RESOLVED' ? "outline" : "destructive" // Green/Outline for Resolved? Or maybe standard Badge variant?
+                                                    } className={
+                                                        complaint.status === 'RESOLVED' ? "bg-green-100 text-green-800 border-green-200" :
+                                                            complaint.status === 'IN_PROGRESS' ? "bg-blue-100 text-blue-800 border-blue-200" : ""
+                                                    }>
+                                                        {complaint.status.replace('_', ' ')}
+                                                    </Badge>
+                                                </div>
+                                                <p className="text-sm text-slate-600 mb-3">{complaint.message}</p>
+                                                <p className="text-xs text-slate-400">
+                                                    Submitted on {new Date(complaint.createdAt).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+                        </Tabs>
                     </div>
                 </div>
             </div>

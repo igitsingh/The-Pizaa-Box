@@ -61,7 +61,7 @@ export default function FeedbacksPage() {
     const fetchFeedbacks = async () => {
         try {
             setIsLoading(true)
-            const res = await api.get("/admin/feedbacks")
+            const res = await api.get("/feedbacks")
             setFeedbacks(res.data)
         } catch (error) {
             toast.error("Failed to fetch feedbacks")
@@ -72,7 +72,7 @@ export default function FeedbacksPage() {
 
     const handleToggleVisibility = async (id: string) => {
         try {
-            await api.patch(`/admin/feedbacks/${id}/toggle-visibility`)
+            await api.patch(`/feedbacks/${id}/toggle-visibility`)
             toast.success("Visibility updated")
             fetchFeedbacks()
         } catch (error) {
@@ -87,7 +87,7 @@ export default function FeedbacksPage() {
         }
 
         try {
-            await api.patch(`/admin/feedbacks/${selectedFeedback.id}/respond`, {
+            await api.patch(`/feedbacks/${selectedFeedback.id}/respond`, {
                 adminResponse: adminResponse.trim()
             })
             toast.success("Response added successfully")
@@ -103,7 +103,7 @@ export default function FeedbacksPage() {
         if (!confirm("Are you sure you want to delete this feedback?")) return
 
         try {
-            await api.delete(`/admin/feedbacks/${id}`)
+            await api.delete(`/feedbacks/${id}`)
             toast.success("Feedback deleted")
             fetchFeedbacks()
         } catch (error) {
