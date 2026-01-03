@@ -6,36 +6,79 @@ const prisma = new PrismaClient();
 
 router.post('/patch-user-table', async (req, res) => {
     try {
-        console.log('Attempting to patch User table...');
+        console.log('Starting Comprehensive Schema Patch...');
+        const log: string[] = [];
 
-        // 1. Check if column exists (Postgres specific)
-        const checkQuery = `
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name='User' AND column_name='otp';
-        `;
-        const result: any[] = await prisma.$queryRawUnsafe(checkQuery);
-
-        if (result.length > 0) {
-            return res.json({ message: 'User.otp column already exists. No patch needed.' });
-        }
-
-        // 2. Add columns manually if missing
+        // 1. User Table Patch (Confirmed working, but keeping for safety)
         await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "otp" TEXT;`);
         await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "otpExpiry" TIMESTAMP(3);`);
-        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "isVIP" BOOLEAN NOT NULL DEFAULT false;`);
-        await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "notes" TEXT;`);
+        log.push('User table patched.');
 
-        // Also fix other critical missing columns if needed (based on previous errors)
-        // Order status enum was an issue too?
-        // Let's stick to User first to fix login.
+        // 2. Order Table Patch (Critical for Dashboard)
+        // Adding columns one by one to avoid syntax errors if some exist
+        const orderCols = [
+            'ADD COLUMN IF NOT EXISTS "customerName" TEXT',
+            'ADD COLUMN IF NOT EXISTS "customerPhone" TEXT',
+            'ADD COLUMN IF NOT EXISTS "subtotal" DOUBLE PRECISION NOT NULL DEFAULT 0',
+            'ADD COLUMN IF NOT EXISTS "tax" DOUBLE PRECISION NOT NULL DEFAULT 0',
+            'ADD COLUMN IF NOT EXISTS "deliveryFee" DOUBLE PRECISION NOT NULL DEFAULT 0',
+            'ADD COLUMN IF NOT EXISTS "discountAmount" DOUBLE PRECISION NOT NULL DEFAULT 0',
+            'ADD COLUMN IF NOT EXISTS "orderType" "OrderType" NOT NULL DEFAULT \'INSTANT\'',
+            // 'ADD COLUMN IF NOT EXISTS "orderNumber" SERIAL', // SERIAL cannot be added via ADD COLUMN IF NOT EXISTS easily in Postgres
+            'ADD COLUMN IF NOT EXISTS "invoiceNumber" TEXT',
+            'ADD COLUMN IF NOT EXISTS "scheduledFor" TIMESTAMP(3)',
+            'ADD COLUMN IF NOT EXISTS "instructions" TEXT'
+        ];
 
-        res.json({ message: 'User table patched successfully (Added otp, otpExpiry, isVIP, notes).' });
+        for (const col of orderCols) {
+            try {
+                await prisma.$executeRawUnsafe(`ALTER TABLE "Order" ${col};`);
+            } catch (e: any) {
+                log.push(`Warning Order Mod: ${e.message}`);
+            }
+        }
+        log.push('Order table patched.');
+
+        // 3. Create Missing Tables if they don't exist
+
+        // Complaint
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Complaint" (
+                "id" TEXT NOT NULL,
+                "userId" TEXT NOT NULL,
+                "subject" TEXT NOT NULL,
+                "message" TEXT NOT NULL,
+                "status" "ComplaintStatus" NOT NULL DEFAULT 'OPEN',
+                "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                "updatedAt" TIMESTAMP(3) NOT NULL,
+                CONSTRAINT "Complaint_pkey" PRIMARY KEY ("id")
+            );
+        `);
+        log.push('Complaint table check/create done.');
+
+        // Feedback
+        await prisma.$executeRawUnsafe(`
+            CREATE TABLE IF NOT EXISTS "Feedback" (
+                "id" TEXT NOT NULL,
+                "orderId" TEXT NOT NULL,
+                "userId" TEXT,
+                "guestPhone" TEXT,
+                "rating" INTEGER NOT NULL,
+                "review" TEXT,
+                "adminResponse" TEXT,
+                "isVisible" BOOLEAN NOT NULL DEFAULT true,
+                "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT "Feedback_pkey" PRIMARY KEY ("id")
+            );
+        `);
+        log.push('Feedback table check/create done.');
+
+        res.json({ message: 'Comprehensive Patch Completed', log });
 
     } catch (error: any) {
         console.error('Patch Error:', error);
         res.status(500).json({
-            message: 'Failed to patch User table',
+            message: 'Failed to patch Schema',
             error: error.message
         });
     }
