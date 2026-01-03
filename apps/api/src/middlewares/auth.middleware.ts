@@ -3,6 +3,7 @@ import { verifyToken } from '../utils/auth';
 
 export interface AuthRequest extends Request {
     user?: any;
+    body: any;
 }
 
 export const authenticate = (req: Request, res: Response, next: NextFunction) => {
