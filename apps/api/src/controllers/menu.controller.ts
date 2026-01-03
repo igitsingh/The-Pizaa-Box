@@ -19,8 +19,12 @@ export const getMenu = async (req: Request, res: Response): Promise<void> => {
             },
         });
         res.json(categories);
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+    } catch (error: any) {
+        res.status(500).json({
+            message: 'Internal server error',
+            details: error.message,
+            code: error.code
+        });
     }
 };
 
@@ -46,8 +50,12 @@ export const getItem = async (req: Request, res: Response): Promise<void> => {
         }
 
         res.json(item);
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+    } catch (error: any) {
+        res.status(500).json({
+            message: 'Internal server error',
+            details: error.message,
+            code: error.code
+        });
     }
 };
 
@@ -77,7 +85,11 @@ export const getCategoryBySlug = async (req: Request, res: Response): Promise<vo
         }
 
         res.json(category);
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+    } catch (error: any) {
+        res.status(500).json({
+            message: 'Internal server error',
+            details: error.message,
+            code: error.code
+        });
     }
 };
