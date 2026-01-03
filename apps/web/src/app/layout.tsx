@@ -11,6 +11,8 @@ import WhatsAppButton from '@/components/WhatsAppButton';
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "The Pizza Box – Best Pizza in Meerut | Top-Rated Pizza Delivery near me",
   description: "Order fresh, locally-made veg pizzas, burgers, & snacks from The Pizza Box, Meerut. #1 Rated for taste in Prabhat Nagar. Fast delivery & best prices. Check our menu!",
