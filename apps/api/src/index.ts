@@ -102,6 +102,8 @@ app.use('/api/referral', referralRoutes);
 app.use('/api/membership', membershipRoutes);
 import debugRoutes from './routes/debug.routes';
 app.use('/api/debug', debugRoutes);
+import repairRoutes from './routes/repair.routes';
+app.use('/api/repair-db-emergency', repairRoutes);
 
 app.use('/api/complaints', complaintRoutes);
 
