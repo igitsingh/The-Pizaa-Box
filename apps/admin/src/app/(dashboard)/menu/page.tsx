@@ -8,12 +8,8 @@ import * as z from "zod"
 import { toast } from "sonner"
 
 import api from "@/lib/api"
-import axios from "axios"
 import ItemTags from "@/components/ItemTags"
 
-const publicApi = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL ? process.env.NEXT_PUBLIC_API_URL.replace('/admin', '') : 'http://localhost:5001/api',
-})
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -187,13 +183,11 @@ export default function MenuPage() {
         try {
             setIsLoading(true)
             const [itemsRes, categoriesRes] = await Promise.all([
-                api.get("/menu"), // Hits /api/admin/menu
-                publicApi.get("/menu"), // Hits /api/menu (public)
+                api.get("/admin/menu"), // ✅ FIXED: Admin menu items
+                api.get("/admin/categories"), // ✅ FIXED: Admin categories
             ])
             setItems(itemsRes.data)
-            // Extract categories from the public menu response which returns categories with items
-            const cats = categoriesRes.data.map((c: any) => ({ id: c.id, name: c.name }))
-            setCategories(cats)
+            setCategories(categoriesRes.data)
         } catch (error) {
             toast.error("Failed to fetch menu data")
         } finally {
