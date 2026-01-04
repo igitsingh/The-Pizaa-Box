@@ -44,7 +44,7 @@ interface OrderItem {
 
 interface Order {
     id: string
-    orderNumber: number // Update this to number as per schema, though string worked likely due to loose typing
+    orderNumber: number
     status: OrderStatus
     total: number
     createdAt: string
@@ -54,10 +54,37 @@ interface Order {
         name: string
         phone: string | null
     }
-    deliveryType: string // This probably maps to orderType or is derived
+    deliveryType: string
     locationName?: string
     items: OrderItem[]
     notes?: string
+}
+
+// ✅ CRITICAL FIX: Normalize backend data to prevent runtime crashes
+function normalizeKitchenOrder(order: any): Order {
+    return {
+        id: order.id || '',
+        orderNumber: order.orderNumber || 0,
+        status: order.status || "PENDING",
+        total: order.total || 0,
+        createdAt: order.createdAt || new Date().toISOString(),
+        customerName: order.customerName || order.user?.name || "Guest",
+        customerPhone: order.customerPhone || order.user?.phone || undefined,
+        user: order.user ? {
+            name: order.user.name || "Guest",
+            phone: order.user.phone || null
+        } : undefined,
+        deliveryType: order.deliveryType || order.orderType || "PICKUP",
+        locationName: order.locationName || undefined,
+        items: Array.isArray(order.items) ? order.items.map((item: any) => ({
+            id: item.id || '',
+            itemId: item.itemId || item.id || '',
+            name: item.name || 'Unknown Item',
+            quantity: item.quantity || 1,
+            price: item.price || 0
+        })) : [], // ✅ CRITICAL: Default to empty array if items is undefined
+        notes: order.notes || undefined
+    }
 }
 
 const COLUMNS = {
@@ -87,17 +114,25 @@ const COLUMNS = {
 export default function KitchenPage() {
     const [orders, setOrders] = useState<Order[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     const fetchOrders = useCallback(async () => {
         try {
-            // Get active orders (not delivered or cancelled)
+            setError(null)
             const res = await api.get("/admin/kitchen/board")
-            // The API returns differently structured data sometimes, let's normalize
-            // assuming /api/admin/orders
-            setOrders(res.data)
-        } catch (error) {
-            console.error(error)
-            toast.error("Failed to sync with kitchen")
+
+            // ✅ CRITICAL FIX: Normalize data to prevent crashes
+            const normalizedOrders = Array.isArray(res.data)
+                ? res.data.map(normalizeKitchenOrder)
+                : []
+
+            console.log('✅ Kitchen orders fetched:', normalizedOrders.length)
+            setOrders(normalizedOrders)
+        } catch (error: any) {
+            console.error('❌ Kitchen fetch error:', error)
+            const errorMsg = error.response?.data?.message || error.message || 'Failed to sync with kitchen'
+            setError(errorMsg)
+            toast.error(errorMsg)
         } finally {
             setIsLoading(false)
         }
@@ -153,6 +188,23 @@ export default function KitchenPage() {
                 <div className="flex flex-col items-center gap-4">
                     <RefreshCcw className="h-10 w-10 text-orange-600 animate-spin" />
                     <p className="text-slate-500 font-medium tracking-wide">Initializing Kitchen Comms...</p>
+                </div>
+            </div>
+        )
+    }
+
+    // ✅ IMPROVED ERROR UI
+    if (error) {
+        return (
+            <div className="h-screen flex items-center justify-center bg-slate-50/50">
+                <div className="flex flex-col items-center gap-4 max-w-md text-center">
+                    <AlertCircle className="h-16 w-16 text-red-500" />
+                    <h2 className="text-2xl font-bold text-slate-900">Kitchen Data Unavailable</h2>
+                    <p className="text-slate-600">{error}</p>
+                    <Button onClick={fetchOrders} className="gap-2">
+                        <RefreshCcw className="h-4 w-4" />
+                        Retry Connection
+                    </Button>
                 </div>
             </div>
         )
@@ -266,7 +318,8 @@ export default function KitchenPage() {
                                                                     </div>
 
                                                                     <div className="space-y-2 mb-4">
-                                                                        {order.items.map((item, idx) => (
+                                                                        {/* ✅ CRITICAL FIX: Safe array iteration */}
+                                                                        {(order.items || []).map((item, idx) => (
                                                                             <div key={idx} className="flex items-center gap-2 group">
                                                                                 <div className="h-5 w-5 rounded bg-orange-100 text-orange-700 flex items-center justify-center text-[10px] font-black group-hover:bg-orange-600 group-hover:text-white transition-colors">
                                                                                     {item.quantity}
