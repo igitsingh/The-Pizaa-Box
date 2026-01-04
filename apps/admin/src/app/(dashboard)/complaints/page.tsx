@@ -42,7 +42,7 @@ export default function ComplaintsPage() {
 
     const fetchComplaints = async () => {
         try {
-            const response = await api.get("/complaints")
+            const response = await api.get("/admin/complaints")
             setComplaints(response.data)
         } catch (error) {
             console.error("Failed to fetch complaints", error)
@@ -58,7 +58,7 @@ export default function ComplaintsPage() {
 
     const handleStatusUpdate = async (id: string, newStatus: string) => {
         try {
-            await api.put(`/complaints/${id}/status`, { status: newStatus })
+            await api.put(`/admin/complaints/${id}/status`, { status: newStatus })
             toast.success("Complaint status updated")
             fetchComplaints() // Refresh list
         } catch (error) {

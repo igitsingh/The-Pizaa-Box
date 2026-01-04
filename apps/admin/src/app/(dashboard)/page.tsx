@@ -34,9 +34,9 @@ export default function DashboardPage() {
         const fetchData = async () => {
             try {
                 const [statsRes, trendRes, topItemsRes] = await Promise.all([
-                    api.get('/metrics/stats'),
+                    api.get('/admin/metrics/stats'),
                     api.get(`/metrics/sales-trend?range=${timeRange}`),
-                    api.get('/metrics/top-items')
+                    api.get('/admin/metrics/top-items')
                 ]);
 
                 setStats(statsRes.data);

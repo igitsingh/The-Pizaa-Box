@@ -112,7 +112,7 @@ export default function CouponsPage() {
     const fetchCoupons = async () => {
         try {
             setIsLoading(true)
-            const res = await api.get("/coupons")
+            const res = await api.get("/admin/coupons")
             setCoupons(res.data)
         } catch (error) {
             toast.error("Failed to fetch coupons")
@@ -124,10 +124,10 @@ export default function CouponsPage() {
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
             if (editingCoupon) {
-                await api.put(`/coupons/${editingCoupon.id}`, values)
+                await api.put(`/admin/coupons/${editingCoupon.id}`, values)
                 toast.success("Coupon updated successfully")
             } else {
-                await api.post("/coupons", values)
+                await api.post("/admin/coupons", values)
                 toast.success("Coupon created successfully")
             }
             setIsDialogOpen(false)
@@ -145,7 +145,7 @@ export default function CouponsPage() {
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this coupon?")) return
         try {
-            await api.delete(`/coupons/${id}`)
+            await api.delete(`/admin/coupons/${id}`)
             toast.success("Coupon deleted successfully")
             fetchCoupons()
         } catch (error) {

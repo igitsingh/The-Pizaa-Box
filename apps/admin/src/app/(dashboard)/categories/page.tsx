@@ -80,7 +80,7 @@ export default function CategoriesPage() {
     const fetchCategories = async () => {
         try {
             setIsLoading(true)
-            const res = await api.get("/categories")
+            const res = await api.get("/admin/categories") // ✅ FIXED
             setCategories(res.data)
         } catch (error) {
             toast.error("Failed to fetch categories")
@@ -92,10 +92,10 @@ export default function CategoriesPage() {
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         try {
             if (editingCategory) {
-                await api.put(`/categories/${editingCategory.id}`, values)
+                await api.put(`/admin/categories/${editingCategory.id}`, values) // ✅ FIXED
                 toast.success("Category updated successfully")
             } else {
-                await api.post("/categories", values)
+                await api.post("/admin/categories", values) // ✅ FIXED
                 toast.success("Category created successfully")
             }
             setIsDialogOpen(false)
@@ -109,7 +109,7 @@ export default function CategoriesPage() {
     const handleDelete = async (id: string) => {
         if (!confirm("Are you sure you want to delete this category?")) return
         try {
-            await api.delete(`/categories/${id}`)
+            await api.delete(`/admin/categories/${id}`) // ✅ FIXED
             toast.success("Category deleted successfully")
             fetchCategories()
         } catch (error: any) {

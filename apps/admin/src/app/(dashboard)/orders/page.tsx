@@ -190,7 +190,7 @@ export default function OrdersPage() {
 
     const fetchNotificationLogs = async (orderId: string) => {
         try {
-            const res = await api.get(`/orders/${orderId}/notifications`)
+            const res = await api.get(`/admin/orders/${orderId}/notifications`)
             setNotificationLogs(res.data)
         } catch (error) {
             console.error("Failed to fetch notification logs", error)
@@ -206,7 +206,7 @@ export default function OrdersPage() {
         if (isUpdating) return
         setIsUpdating(true)
         try {
-            await api.put(`/orders/${id}/status`, { status: newStatus })
+            await api.put(`/admin/orders/${id}/status`, { status: newStatus })
             toast.success(`Order status updated to ${newStatus}`)
             fetchOrders()
         } catch (error) {
@@ -220,7 +220,7 @@ export default function OrdersPage() {
         if (!selectedOrder || !selectedPartnerId || isUpdating) return
         setIsUpdating(true)
         try {
-            await api.put(`/orders/${selectedOrder.id}/assign-partner`, { deliveryPartnerId: selectedPartnerId })
+            await api.put(`/admin/orders/${selectedOrder.id}/assign-partner`, { deliveryPartnerId: selectedPartnerId })
             toast.success("Delivery partner assigned")
             setIsAssignPartnerOpen(false)
             fetchOrders()
@@ -265,7 +265,7 @@ export default function OrdersPage() {
 
     const handleDownloadInvoice = async (orderId: string) => {
         try {
-            const response = await api.get(`/orders/${orderId}/invoice`, { responseType: 'blob' });
+            const response = await api.get(`/admin/orders/${orderId}/invoice`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;

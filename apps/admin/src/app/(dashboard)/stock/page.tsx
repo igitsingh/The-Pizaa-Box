@@ -40,7 +40,7 @@ export default function StockPage() {
     const fetchItems = async () => {
         try {
             setIsLoading(true)
-            const response = await api.get("/menu")
+            const response = await api.get("/admin/menu")
             // Filter only stock managed items or show all? 
             // User mentioned "Pizza Dough/Cheese" specifically.
             setItems(response.data)
@@ -54,7 +54,7 @@ export default function StockPage() {
     const handleUpdateStock = async () => {
         if (!updatingItem) return
         try {
-            await api.put(`/stock/items/${updatingItem.id}`, {
+            await api.put(`/admin/stock/items/${updatingItem.id}`, {
                 stock: parseInt(newStock),
                 isStockManaged: true
             })

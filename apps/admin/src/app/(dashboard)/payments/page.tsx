@@ -34,7 +34,7 @@ export default function PaymentsPage() {
 
     const fetchTransactions = async () => {
         try {
-            const response = await api.get("/payments")
+            const response = await api.get("/admin/payments")
             setTransactions(response.data)
         } catch (error) {
             console.error("Failed to fetch transactions", error)
@@ -50,7 +50,7 @@ export default function PaymentsPage() {
 
     const handleExport = async () => {
         try {
-            const response = await api.get("/payments/export", {
+            const response = await api.get("/admin/payments/export", {
                 responseType: 'blob', // Important for file download
             })
 

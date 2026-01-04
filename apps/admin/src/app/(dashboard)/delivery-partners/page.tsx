@@ -51,7 +51,7 @@ export default function DeliveryPartnersPage() {
 
     const fetchPartners = async () => {
         try {
-            const res = await api.get('/delivery-partners');
+            const res = await api.get('/admin/delivery-partners');
             setPartners(res.data);
         } catch (error) {
             console.error('Failed to fetch partners:', error);
@@ -67,7 +67,7 @@ export default function DeliveryPartnersPage() {
 
     const handleCreatePartner = async () => {
         try {
-            await api.post('/delivery-partners', newPartner);
+            await api.post('/admin/delivery-partners', newPartner);
             toast.success('Delivery partner added successfully');
             setIsAddDialogOpen(false);
             setNewPartner({

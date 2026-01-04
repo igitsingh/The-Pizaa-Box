@@ -91,7 +91,7 @@ export default function KitchenPage() {
     const fetchOrders = useCallback(async () => {
         try {
             // Get active orders (not delivered or cancelled)
-            const res = await api.get("/orders?active=true")
+            const res = await api.get("/admin/kitchen/board")
             // The API returns differently structured data sometimes, let's normalize
             // assuming /api/admin/orders
             setOrders(res.data)
@@ -114,7 +114,7 @@ export default function KitchenPage() {
         setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus } : o))
 
         try {
-            await api.put(`/orders/${orderId}/status`, { status: newStatus })
+            await api.put(`/admin/orders/${orderId}/status`, { status: newStatus })
             toast.success(`Order updated to ${newStatus.toLowerCase().replace(/_/g, ' ')}`)
         } catch (error) {
             toast.error("Update failed. Reverting...")

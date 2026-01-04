@@ -112,8 +112,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     const fetchOrder = async () => {
         try {
             const [orderRes, notifRes] = await Promise.all([
-                api.get(`/orders/${id}`),
-                api.get(`/orders/${id}/notifications`)
+                api.get(`/admin/orders/${id}`),
+                api.get(`/admin/orders/${id}/notifications`)
             ])
             setOrder(orderRes.data)
             setNotifications(notifRes.data)
@@ -131,7 +131,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
     const updateStatus = async (newStatus: OrderStatus) => {
         try {
-            await api.put(`/orders/${id}/status`, { status: newStatus })
+            await api.put(`/admin/orders/${id}/status`, { status: newStatus })
             toast.success(`Order status updated to ${newStatus}`)
             fetchOrder()
         } catch (error) {
@@ -141,7 +141,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
     const handleDownloadInvoice = async () => {
         try {
-            const response = await api.get(`/orders/${id}/invoice`, { responseType: 'blob' });
+            const response = await api.get(`/admin/orders/${id}/invoice`, { responseType: 'blob' });
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;

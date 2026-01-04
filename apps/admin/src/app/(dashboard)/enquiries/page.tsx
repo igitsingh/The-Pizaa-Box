@@ -95,7 +95,7 @@ export default function EnquiriesPage() {
             if (statusFilter !== "ALL") params.append("status", statusFilter)
             if (sourceFilter !== "ALL") params.append("source", sourceFilter)
 
-            const res = await api.get(`/enquiries?${params.toString()}`)
+            const res = await api.get(`/admin/enquiries?${params.toString()}`)
             setEnquiries(res.data)
         } catch (error) {
             toast.error("Failed to fetch enquiries")
@@ -106,7 +106,7 @@ export default function EnquiriesPage() {
 
     const fetchStats = async () => {
         try {
-            const res = await api.get("/enquiries/stats")
+            const res = await api.get("/admin/enquiries/stats")
             setStats(res.data)
         } catch (error) {
             console.error("Failed to fetch stats", error)
@@ -115,7 +115,7 @@ export default function EnquiriesPage() {
 
     const fetchStaff = async () => {
         try {
-            const res = await api.get("/users/staff")
+            const res = await api.get("/admin/users/staff")
             setStaffList(res.data)
         } catch (error) {
             console.error("Failed to fetch staff", error)
@@ -169,7 +169,7 @@ export default function EnquiriesPage() {
         if (!confirm("Are you sure you want to delete this enquiry?")) return
 
         try {
-            await api.delete(`/enquiries/${id}`)
+            await api.delete(`/admin/enquiries/${id}`)
             toast.success("Enquiry deleted")
             fetchEnquiries()
             fetchStats()

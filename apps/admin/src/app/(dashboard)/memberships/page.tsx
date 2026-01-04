@@ -32,8 +32,8 @@ export default function MembershipsPage() {
         try {
             setIsLoading(true)
             const [overviewRes, membersRes] = await Promise.all([
-                api.get("/memberships/overview"),
-                api.get("/memberships/members")
+                api.get("/admin/memberships/overview"),
+                api.get("/admin/memberships/members")
             ])
             setOverview(overviewRes.data)
             setMembers(membersRes.data)

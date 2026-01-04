@@ -61,7 +61,7 @@ export default function FeedbacksPage() {
     const fetchFeedbacks = async () => {
         try {
             setIsLoading(true)
-            const res = await api.get("/feedbacks")
+            const res = await api.get("/admin/feedbacks")
             setFeedbacks(res.data)
         } catch (error) {
             toast.error("Failed to fetch feedbacks")
@@ -103,7 +103,7 @@ export default function FeedbacksPage() {
         if (!confirm("Are you sure you want to delete this feedback?")) return
 
         try {
-            await api.delete(`/feedbacks/${id}`)
+            await api.delete(`/admin/feedbacks/${id}`)
             toast.success("Feedback deleted")
             fetchFeedbacks()
         } catch (error) {

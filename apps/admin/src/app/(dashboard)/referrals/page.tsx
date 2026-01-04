@@ -33,8 +33,8 @@ export default function ReferralsPage() {
         try {
             setIsLoading(true)
             const [overviewRes, transactionsRes] = await Promise.all([
-                api.get("/referrals/overview"),
-                api.get("/referrals/transactions")
+                api.get("/admin/referrals/overview"),
+                api.get("/admin/referrals/transactions")
             ])
             setOverview(overviewRes.data)
             setTransactions(transactionsRes.data)
