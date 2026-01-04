@@ -146,27 +146,45 @@ export default function OrdersPage() {
 
     const fetchOrders = async () => {
         try {
-            const res = await api.get("/orders")
-            const newOrders = res.data
-            if (prevOrdersCountRef.current > 0 && newOrders.length > prevOrdersCountRef.current) {
-                toast.info("New order received!", { icon: <Bell className="h-4 w-4" /> })
-                audioRef.current?.play().catch(e => console.log("Audio play failed", e))
+            const res = await api.get("/admin/orders"); // ✅ FIXED: Was /orders
+            const newOrders = res.data;
+
+            // Validate response
+            if (!Array.isArray(newOrders)) {
+                throw new Error(`Invalid response: expected array, got ${typeof newOrders}`);
             }
-            prevOrdersCountRef.current = newOrders.length
-            setOrders(newOrders)
-        } catch (error) {
-            console.error("Failed to fetch orders", error)
+
+            if (prevOrdersCountRef.current > 0 && newOrders.length > prevOrdersCountRef.current) {
+                toast.info("New order received!", { icon: <Bell className="h-4 w-4" /> });
+                audioRef.current?.play().catch(e => console.log("Audio play failed", e));
+            }
+            prevOrdersCountRef.current = newOrders.length;
+            setOrders(newOrders);
+        } catch (error: any) {
+            console.error("Failed to fetch orders", error);
+            const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
+            const status = error.response?.status || 'Network Error';
+            toast.error(`Failed to load orders (${status}): ${errorMsg}`);
         } finally {
-            setIsLoading(false)
+            setIsLoading(false);
         }
     }
 
     const fetchDeliveryPartners = async () => {
         try {
-            const res = await api.get("/delivery-partners")
-            setDeliveryPartners(res.data)
-        } catch (error) {
-            console.error("Failed to fetch delivery partners", error)
+            const res = await api.get("/admin/delivery-partners"); // ✅ FIXED: Was /delivery-partners
+
+            // Validate response
+            if (!Array.isArray(res.data)) {
+                throw new Error(`Invalid response: expected array, got ${typeof res.data}`);
+            }
+
+            setDeliveryPartners(res.data);
+        } catch (error: any) {
+            console.error("Failed to fetch delivery partners", error);
+            const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
+            toast.error(`Failed to load delivery partners: ${errorMsg}`);
+            setDeliveryPartners([]); // Set empty array on error
         }
     }
 
