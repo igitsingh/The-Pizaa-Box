@@ -68,6 +68,7 @@ import adminComplaintRoutes from './routes/admin/complaint.routes';
 import adminReportsRoutes from './routes/admin/reports.routes';
 import adminLocationRoutes from './routes/admin/location.routes';
 import adminKitchenRoutes from './routes/admin/kitchen.routes';
+import adminResetRoutes from './routes/admin-reset.routes'; // TEMPORARY - for password reset
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -93,6 +94,7 @@ app.use('/api/admin/reports', adminReportsRoutes);
 app.use('/api/admin/referrals', adminReferralRoutes);
 app.use('/api/admin/memberships', adminMembershipRoutes);
 app.use('/api/admin/locations', adminLocationRoutes);
+app.use('/api/admin-reset', adminResetRoutes); // TEMPORARY - for password reset
 app.use('/api/admin', adminRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/settings', settingsRoutes);
