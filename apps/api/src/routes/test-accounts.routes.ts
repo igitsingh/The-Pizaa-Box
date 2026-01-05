@@ -112,8 +112,8 @@ router.post('/create-test-accounts', async (req, res) => {
             },
         ];
 
-        const created = [];
-        const skipped = [];
+        const created: Array<{ email: string; name: string; addressCount: number }> = [];
+        const skipped: string[] = [];
 
         for (const account of testAccounts) {
             try {
@@ -148,7 +148,7 @@ router.post('/create-test-accounts', async (req, res) => {
                 });
 
                 created.push({
-                    email: user.email,
+                    email: user.email || '',
                     name: user.name,
                     addressCount: user.addresses.length
                 });
