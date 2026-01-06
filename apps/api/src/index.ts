@@ -71,6 +71,7 @@ import adminKitchenRoutes from './routes/admin/kitchen.routes';
 import adminResetRoutes from './routes/admin-reset.routes'; // TEMPORARY - for password reset
 import testAccountsRoutes from './routes/test-accounts.routes'; // TEMPORARY - for test accounts
 import deliveryZonesRoutes from './routes/delivery-zones.routes'; // TEMPORARY - for delivery zones
+import fixSchemaRoutes from './routes/fix-schema.routes'; // TEMPORARY - for schema fixes
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -99,6 +100,7 @@ app.use('/api/admin/locations', adminLocationRoutes);
 app.use('/api/admin-reset', adminResetRoutes); // TEMPORARY - for password reset
 app.use('/api/test-accounts', testAccountsRoutes); // TEMPORARY - for test accounts
 app.use('/api/delivery-zones', deliveryZonesRoutes); // TEMPORARY - for delivery zones
+app.use('/api/fix-schema', fixSchemaRoutes); // TEMPORARY - for schema fixes
 app.use('/api/admin', adminRoutes);
 app.use('/api/locations', locationRoutes);
 app.use('/api/settings', settingsRoutes);
