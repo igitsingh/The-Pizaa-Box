@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, use } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useParams } from "next/navigation"
 import {
     ChevronLeft,
     Bike,
@@ -102,8 +102,9 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string, color: string, icon: a
     CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-800 border-red-200", icon: AlertCircle },
 }
 
-export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-    const { id } = use(params)
+export default function OrderDetailsPage() {
+    const params = useParams()
+    const id = params.id as string
     const router = useRouter()
     const [order, setOrder] = useState<Order | null>(null)
     const [isLoading, setIsLoading] = useState(true)
