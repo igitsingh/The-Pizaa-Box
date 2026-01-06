@@ -13,7 +13,7 @@ router.post('/fix-schema', async (req, res) => {
             return res.status(403).json({ message: 'Invalid secret' });
         }
 
-        // Add missing columns to Settings table using raw SQL
+        // Add missing columns to Settings table
         await prisma.$executeRaw`
             ALTER TABLE "Settings" 
             ADD COLUMN IF NOT EXISTS "lastOrderTime" TEXT;
@@ -32,6 +32,22 @@ router.post('/fix-schema', async (req, res) => {
         await prisma.$executeRaw`
             ALTER TABLE "Settings" 
             ADD COLUMN IF NOT EXISTS "seoOgImage" TEXT;
+        `;
+
+        // Add missing columns to OrderItem table
+        await prisma.$executeRaw`
+            ALTER TABLE "OrderItem" 
+            ADD COLUMN IF NOT EXISTS "variants" JSONB;
+        `;
+
+        await prisma.$executeRaw`
+            ALTER TABLE "OrderItem" 
+            ADD COLUMN IF NOT EXISTS "options" JSONB;
+        `;
+
+        await prisma.$executeRaw`
+            ALTER TABLE "OrderItem" 
+            ADD COLUMN IF NOT EXISTS "addons" JSONB;
         `;
 
         res.json({
