@@ -34,6 +34,28 @@ export const createPartner = async (req: Request, res: Response) => {
     }
 };
 
+export const updatePartner = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, phone, email, vehicleType, vehicleNumber, status } = req.body;
+        const partner = await prisma.deliveryPartner.update({
+            where: { id },
+            data: {
+                name,
+                phone,
+                email,
+                vehicleType,
+                vehicleNumber,
+                status
+            }
+        });
+        res.json(partner);
+    } catch (error) {
+        console.error('Update partner error:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
 export const updatePartnerStatus = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
