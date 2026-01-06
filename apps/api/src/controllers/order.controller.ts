@@ -430,7 +430,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
             const updatedOrder = await tx.order.update({
                 where: { id: order.id },
                 data: { invoiceNumber },
-                include: { items: true, user: true }
+                include: { Item: true, User: true }
             });
 
             return updatedOrder;
@@ -574,7 +574,7 @@ export const getOrder = async (req: Request, res: Response): Promise<void> => {
 
         const order = await (prisma as any).order.findUnique({
             where: { id },
-            include: { items: true, user: true },
+            include: { Item: true, User: true },
         });
 
         if (!order) {
@@ -601,7 +601,7 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
         const order = await (prisma as any).order.update({
             where: { id },
             data: { status },
-            include: { user: true }
+            include: { User: true }
         });
 
         // Notify user via socket
@@ -668,7 +668,7 @@ export const repeatOrder = async (req: Request, res: Response): Promise<void> =>
 
         const originalOrder = await (prisma as any).order.findUnique({
             where: { id: orderId },
-            include: { items: true }
+            include: { Item: true }
         });
 
         if (!originalOrder) {
@@ -809,7 +809,7 @@ export const downloadInvoice = async (req: Request, res: Response): Promise<void
         const { id } = req.params;
         const order = await (prisma as any).order.findUnique({
             where: { id },
-            include: { items: true, user: true }
+            include: { Item: true, User: true }
         });
 
         if (!order) {

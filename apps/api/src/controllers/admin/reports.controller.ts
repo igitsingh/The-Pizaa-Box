@@ -38,7 +38,7 @@ export const getSalesReport = async (req: Request, res: Response) => {
         orders.forEach(order => {
             const dateKey = format(new Date(order.createdAt), groupBy === 'month' ? 'yyyy-MM' : 'yyyy-MM-dd');
             if (!salesByDate[dateKey]) {
-                salesByDate[dateKey] = { revenue: 0, orders: 0, items: 0 };
+                salesByDate[dateKey] = { revenue: 0, orders: 0, Item: 0 };
             }
             salesByDate[dateKey].revenue += order.total;
             salesByDate[dateKey].orders += 1;

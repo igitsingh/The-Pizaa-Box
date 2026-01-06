@@ -211,7 +211,7 @@ export const getTopItems = async (req: Request, res: Response) => {
         // Get all non-cancelled orders with items
         const orders = await prisma.order.findMany({
             where: { status: { not: 'CANCELLED' } },
-            include: { items: true },
+            include: { Item: true },
             take: 200 // Last 200 orders for better data
         });
 

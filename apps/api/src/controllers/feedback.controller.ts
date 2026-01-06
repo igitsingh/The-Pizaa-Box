@@ -21,7 +21,7 @@ export const submitFeedback = async (req: Request, res: Response) => {
         // Check if order exists
         const order = await prisma.order.findUnique({
             where: { id: orderId },
-            include: { feedback: true }
+            include: { Feedback: true }
         });
 
         if (!order) {

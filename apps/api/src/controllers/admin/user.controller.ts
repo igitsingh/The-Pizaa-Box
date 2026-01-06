@@ -36,7 +36,7 @@ export const getUserById = async (req: Request, res: Response) => {
             where: { id },
             include: {
                 orders: {
-                    include: { items: true },
+                    include: { Item: true },
                     orderBy: { createdAt: 'desc' },
                 },
                 addresses: true

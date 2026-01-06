@@ -44,7 +44,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         });
 
         const token = generateToken(user.id, user.role);
-        res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        res.status(201).json({ token, User: { id: user.id, email: user.email, name: user.name, role: user.role } });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ errors: error.issues });
@@ -106,7 +106,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             });
         }
 
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
+        res.json({ token, User: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ errors: error.issues });
@@ -141,7 +141,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
         }
 
         const token = generateToken(user.id, user.role);
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
+        res.json({ token, User: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
     } catch (error) {
         console.error('Google login error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -173,7 +173,7 @@ export const whatsappLogin = async (req: Request, res: Response): Promise<void> 
         }
 
         const token = generateToken(user.id, user.role);
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
+        res.json({ token, User: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
     } catch (error) {
         console.error('WhatsApp login error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -191,7 +191,7 @@ export const getMe = async (req: Request, res: Response): Promise<void> => {
 
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            select: { id: true, email: true, name: true, role: true, phone: true, addresses: true },
+            select: { id: true, email: true, name: true, role: true, phone: true, Address: true },
         });
 
         if (!user) {
@@ -276,7 +276,7 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
         });
 
         const token = generateToken(updatedUser.id, updatedUser.role);
-        res.json({ token, user: updatedUser });
+        res.json({ token, User: updatedUser });
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ errors: error.issues });
