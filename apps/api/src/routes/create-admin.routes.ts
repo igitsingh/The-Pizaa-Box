@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -24,6 +25,7 @@ router.post('/create-admin', async (req, res) => {
                 role: Role.ADMIN
             },
             create: {
+                id: randomUUID(),
                 email,
                 password: hashedPassword,
                 name: 'Admin User',
