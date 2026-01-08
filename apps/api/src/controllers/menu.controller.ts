@@ -7,12 +7,12 @@ export const getMenu = async (req: Request, res: Response): Promise<void> => {
             include: {
                 Item: {
                     include: {
-                        Option: {
+                        ItemOption: {
                             include: {
-                                Choice: true,
+                                OptionChoice: true,
                             },
                         },
-                        Addon: true,
+                        ItemAddon: true,
                         Variant: true,
                     },
                 },
@@ -34,12 +34,12 @@ export const getItem = async (req: Request, res: Response): Promise<void> => {
         const item = await prisma.item.findUnique({
             where: { id },
             include: {
-                Option: {
+                ItemOption: {
                     include: {
-                        Choice: true,
+                        OptionChoice: true,
                     },
                 },
-                Addon: true,
+                ItemAddon: true,
                 Variant: true,
             },
         });
@@ -67,12 +67,12 @@ export const getCategoryBySlug = async (req: Request, res: Response): Promise<vo
             include: {
                 Item: {
                     include: {
-                        Option: {
+                        ItemOption: {
                             include: {
-                                Choice: true,
+                                OptionChoice: true,
                             },
                         },
-                        Addon: true,
+                        ItemAddon: true,
                         Variant: true,
                     },
                 },
