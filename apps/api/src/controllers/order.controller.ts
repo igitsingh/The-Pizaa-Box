@@ -427,13 +427,13 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
             const dateStr = new Date().toISOString().slice(0, 7).replace('-', '');
             const invoiceNumber = `INV-${dateStr}-${String(order.orderNumber).padStart(5, '0')}`;
 
-            const updatedOrder = await tx.order.update({
+            await tx.order.update({
                 where: { id: order.id },
-                data: { invoiceNumber },
-                include: { OrderItem: true, User: true }
+                data: { invoiceNumber }
             });
 
-            return updatedOrder;
+            // Return the order with invoice number added
+            return { ...order, invoiceNumber };
         });
 
         const order = result;
