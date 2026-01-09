@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 
 // Standard order include for detailed views
 export const ORDER_DETAIL_INCLUDE: Prisma.OrderInclude = {
-    user: {
+    User: {
         select: {
             id: true,
             name: true,
@@ -18,9 +18,9 @@ export const ORDER_DETAIL_INCLUDE: Prisma.OrderInclude = {
             phone: true,
         },
     },
-    items: true,
-    address: true,
-    deliveryPartner: {
+    OrderItem: true,
+    Address: true,
+    DeliveryPartner: {
         select: {
             id: true,
             name: true,
@@ -32,13 +32,13 @@ export const ORDER_DETAIL_INCLUDE: Prisma.OrderInclude = {
 
 // Minimal order include for lists
 export const ORDER_LIST_INCLUDE: Prisma.OrderInclude = {
-    user: {
+    User: {
         select: {
             name: true,
             phone: true,
         },
     },
-    items: {
+    OrderItem: {
         select: {
             id: true,
             name: true,
@@ -106,7 +106,7 @@ export async function getOutForDeliveryOrders() {
         },
         include: {
             ...ORDER_LIST_INCLUDE,
-            deliveryPartner: {
+            DeliveryPartner: {
                 select: {
                     name: true,
                     phone: true,
