@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { PrismaClient, OrderStatus } from '@prisma/client';
 import { getAllOrders as getAllOrdersUtil, getOrderCountsByStatus, ORDER_DETAIL_INCLUDE } from '../../utils/orderQueries';
 import { parseOrderStatus, isValidOrderStatus } from '../../constants/orderStatus';
+import { transformOrder } from '../../utils/transform';
 
 const prisma = new PrismaClient();
 
@@ -31,7 +32,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
 
         console.log(`[ORDERS] Fetched ${orders.length} orders with filters: `, filters);
 
-        res.json(orders);
+        res.json(orders.map(transformOrder));
     } catch (error: any) {
         console.error('Get all orders error:', error);
         // Return empty array instead of 500
@@ -46,7 +47,7 @@ export const getOrderById = async (req: Request, res: Response) => {
             where: { id },
             include: {
                 ...ORDER_DETAIL_INCLUDE,
-                refund: true,
+                Refund: true,
             },
         });
 
@@ -54,7 +55,7 @@ export const getOrderById = async (req: Request, res: Response) => {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        res.json(order);
+        res.json(transformOrder(order));
     } catch (error: any) {
         console.error('Get order error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -73,7 +74,7 @@ export const assignDeliveryPartner = async (req: Request, res: Response) => {
                 status: 'OUT_FOR_DELIVERY',
             },
             include: {
-                deliveryPartner: true,
+                DeliveryPartner: true,
             },
         });
 
@@ -85,7 +86,7 @@ export const assignDeliveryPartner = async (req: Request, res: Response) => {
 
         console.log(`[ORDER] ${id} assigned to partner ${deliveryPartnerId} `);
 
-        res.json(order);
+        res.json(transformOrder(order));
     } catch (error: any) {
         console.error('Assign partner error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -119,7 +120,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
                 status,
             },
             include: {
-                user: {
+                User: {
                     select: {
                         name: true,
                         email: true,
@@ -138,7 +139,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 
         console.log(`[ORDER] ${id} status updated: ${currentOrder.status} → ${status} `);
 
-        res.json(order);
+        res.json(transformOrder(order));
     } catch (error: any) {
         console.error('Update order status error:', error);
         res.status(500).json({ message: 'Internal server error' });

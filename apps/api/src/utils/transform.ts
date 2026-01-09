@@ -50,3 +50,20 @@ export const transformAuthResponse = (token: string, user: any) => {
         user: transformUser(user)
     };
 };
+
+export const transformOrder = (order: any) => {
+    if (!order) return null;
+
+    return {
+        ...order,
+        user: order.User,
+        items: order.OrderItem,
+        address: order.Address,
+        deliveryPartner: order.DeliveryPartner,
+        // Remove PascalCase versions
+        User: undefined,
+        OrderItem: undefined,
+        Address: undefined,
+        DeliveryPartner: undefined
+    };
+};
