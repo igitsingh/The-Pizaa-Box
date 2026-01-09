@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/db';
 import { generateToken, hashPassword, comparePassword } from '../utils/auth';
+import { transformAuthResponse } from '../utils/transform';
 import { z } from 'zod';
 
 const signupSchema = z.object({
@@ -44,7 +45,7 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         });
 
         const token = generateToken(user.id, user.role);
-        res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+        res.status(201).json(transformAuthResponse(token, user));
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ errors: error.issues });
@@ -106,7 +107,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             });
         }
 
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
+        res.json(transformAuthResponse(token, user));
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ errors: error.issues });
@@ -141,7 +142,7 @@ export const googleLogin = async (req: Request, res: Response): Promise<void> =>
         }
 
         const token = generateToken(user.id, user.role);
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
+        res.json(transformAuthResponse(token, user));
     } catch (error) {
         console.error('Google login error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -173,7 +174,7 @@ export const whatsappLogin = async (req: Request, res: Response): Promise<void> 
         }
 
         const token = generateToken(user.id, user.role);
-        res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, phone: user.phone } });
+        res.json(transformAuthResponse(token, user));
     } catch (error) {
         console.error('WhatsApp login error:', error);
         res.status(500).json({ message: 'Internal server error' });
@@ -276,7 +277,7 @@ export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
         });
 
         const token = generateToken(updatedUser.id, updatedUser.role);
-        res.json({ token, user: updatedUser });
+        res.json(transformAuthResponse(token, updatedUser));
     } catch (error) {
         if (error instanceof z.ZodError) {
             res.status(400).json({ errors: error.issues });

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/db';
+import { transformCategory, transformItem } from '../utils/transform';
 
 export const getMenu = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -19,26 +20,7 @@ export const getMenu = async (req: Request, res: Response): Promise<void> => {
             },
         });
 
-        // Transform data to match frontend expectations
-        const transformedCategories = categories.map(category => ({
-            ...category,
-            items: category.Item.map(item => ({
-                ...item,
-                options: item.ItemOption.map(option => ({
-                    ...option,
-                    choices: option.OptionChoice
-                })),
-                addons: item.ItemAddon,
-                variants: item.Variant,
-                // Remove the PascalCase versions
-                ItemOption: undefined,
-                ItemAddon: undefined,
-                Variant: undefined
-            })),
-            Item: undefined // Remove the PascalCase version
-        }));
-
-        res.json(transformedCategories);
+        res.json(categories.map(transformCategory));
     } catch (error: any) {
         res.status(500).json({
             message: 'Internal server error',
@@ -69,21 +51,7 @@ export const getItem = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        // Transform data to match frontend expectations
-        const transformedItem = {
-            ...item,
-            options: item.ItemOption.map(option => ({
-                ...option,
-                choices: option.OptionChoice
-            })),
-            addons: item.ItemAddon,
-            variants: item.Variant,
-            ItemOption: undefined,
-            ItemAddon: undefined,
-            Variant: undefined
-        };
-
-        res.json(transformedItem);
+        res.json(transformItem(item));
     } catch (error: any) {
         res.status(500).json({
             message: 'Internal server error',
@@ -118,25 +86,7 @@ export const getCategoryBySlug = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        // Transform data to match frontend expectations
-        const transformedCategory = {
-            ...category,
-            items: category.Item.map(item => ({
-                ...item,
-                options: item.ItemOption.map(option => ({
-                    ...option,
-                    choices: option.OptionChoice
-                })),
-                addons: item.ItemAddon,
-                variants: item.Variant,
-                ItemOption: undefined,
-                ItemAddon: undefined,
-                Variant: undefined
-            })),
-            Item: undefined
-        };
-
-        res.json(transformedCategory);
+        res.json(transformCategory(category));
     } catch (error: any) {
         res.status(500).json({
             message: 'Internal server error',
